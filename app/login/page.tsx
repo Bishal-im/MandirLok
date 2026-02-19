@@ -1,307 +1,694 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, RefreshCw } from "lucide-react";
 
-const COUNTRY_CODES = [
-  { code: "+91", flag: "🇮🇳", name: "India", length: 10 },
-  { code: "+1", flag: "🇺🇸", name: "USA", length: 10 },
-  { code: "+44", flag: "🇬🇧", name: "UK", length: 10 },
-  { code: "+61", flag: "🇦🇺", name: "Australia", length: 9 },
-  { code: "+971", flag: "🇦🇪", name: "UAE", length: 9 },
-  { code: "+65", flag: "🇸🇬", name: "Singapore", length: 8 },
-  { code: "+60", flag: "🇲🇾", name: "Malaysia", length: 9 },
-  { code: "+974", flag: "🇶🇦", name: "Qatar", length: 8 },
-  { code: "+966", flag: "🇸🇦", name: "Saudi Arabia", length: 9 },
-  { code: "+973", flag: "🇧🇭", name: "Bahrain", length: 8 },
-  { code: "+968", flag: "🇴🇲", name: "Oman", length: 8 },
-  { code: "+965", flag: "🇰🇼", name: "Kuwait", length: 8 },
-  { code: "+977", flag: "🇳🇵", name: "Nepal", length: 10 },
-  { code: "+94", flag: "🇱🇰", name: "Sri Lanka", length: 9 },
-  { code: "+880", flag: "🇧🇩", name: "Bangladesh", length: 10 },
-  { code: "+92", flag: "🇵🇰", name: "Pakistan", length: 10 },
-  { code: "+27", flag: "🇿🇦", name: "South Africa", length: 9 },
-  { code: "+254", flag: "🇰🇪", name: "Kenya", length: 9 },
-  { code: "+234", flag: "🇳🇬", name: "Nigeria", length: 10 },
-  { code: "+81", flag: "🇯🇵", name: "Japan", length: 10 },
-  { code: "+82", flag: "🇰🇷", name: "South Korea", length: 10 },
-  { code: "+86", flag: "🇨🇳", name: "China", length: 11 },
-  { code: "+49", flag: "🇩🇪", name: "Germany", length: 10 },
-  { code: "+33", flag: "🇫🇷", name: "France", length: 9 },
-  { code: "+39", flag: "🇮🇹", name: "Italy", length: 10 },
-  { code: "+34", flag: "🇪🇸", name: "Spain", length: 9 },
-  { code: "+64", flag: "🇳🇿", name: "New Zealand", length: 9 },
-  { code: "+62", flag: "🇮🇩", name: "Indonesia", length: 10 },
-  { code: "+63", flag: "🇵🇭", name: "Philippines", length: 10 },
-  { code: "+66", flag: "🇹🇭", name: "Thailand", length: 9 },
-];
+type Step = "email" | "otp" | "success";
 
 export default function LoginPage() {
-  const [step, setStep] = useState<"phone" | "otp" | "name">("phone");
-  const [countryCode, setCountryCode] = useState(COUNTRY_CODES[0]);
-  const [phone, setPhone] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showCountries, setShowCountries] = useState(false);
+  const [error, setError] = useState("");
+  const [resendTimer, setResendTimer] = useState(0);
+  const [shake, setShake] = useState(false);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const handleOtpChange = (val: string, idx: number) => {
-    if (!/^\d?$/.test(val)) return;
+  // Countdown timer for resend
+  useEffect(() => {
+    if (resendTimer > 0) {
+      timerRef.current = setInterval(() => {
+        setResendTimer((t) => {
+          if (t <= 1) {
+            clearInterval(timerRef.current!);
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [resendTimer]);
+
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+  const handleSendOtp = async () => {
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid Gmail address.");
+      triggerShake();
+      return;
+    }
+    setError("");
+    setLoading(true);
+    // Simulate API call
+    await new Promise((r) => setTimeout(r, 1400));
+    setLoading(false);
+    setStep("otp");
+    setResendTimer(30);
+    setTimeout(() => otpRefs.current[0]?.focus(), 100);
+  };
+
+  const handleOtpChange = (idx: number, val: string) => {
+    const digit = val.replace(/\D/g, "").slice(-1);
     const next = [...otp];
-    next[idx] = val;
+    next[idx] = digit;
     setOtp(next);
-    if (val && idx < 5) {
-      const nextInput = document.getElementById(`otp-${idx + 1}`);
-      nextInput?.focus();
+    setError("");
+    if (digit && idx < 5) {
+      otpRefs.current[idx + 1]?.focus();
     }
   };
 
-  const sendOtp = () => {
-    if (phone.length !== countryCode.length) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setStep("otp");
-    }, 1000);
+  const handleOtpKeyDown = (idx: number, e: React.KeyboardEvent) => {
+    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
+      otpRefs.current[idx - 1]?.focus();
+    }
   };
 
-  const verifyOtp = () => {
-    if (otp.join("").length !== 6) return;
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
+    if (pasted.length === 6) {
+      setOtp(pasted.split(""));
+      otpRefs.current[5]?.focus();
+    }
+    e.preventDefault();
+  };
+
+  const handleVerify = async () => {
+    const code = otp.join("");
+    if (code.length < 6) {
+      setError("Please enter the full 6-digit OTP.");
+      triggerShake();
+      return;
+    }
+    setError("");
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setStep("name");
-    }, 1000);
+    await new Promise((r) => setTimeout(r, 1400));
+    setLoading(false);
+    // Simulate wrong OTP for demo (any code except 123456)
+    if (code !== "123456") {
+      setError("Incorrect OTP. Please try again.");
+      triggerShake();
+      setOtp(["", "", "", "", "", ""]);
+      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      return;
+    }
+    setStep("success");
+  };
+
+  const handleResend = async () => {
+    if (resendTimer > 0) return;
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 1000));
+    setLoading(false);
+    setResendTimer(30);
+    setTimeout(() => otpRefs.current[0]?.focus(), 100);
+  };
+
+  const triggerShake = () => {
+    setShake(true);
+    setTimeout(() => setShake(false), 600);
   };
 
   return (
-    <>
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-[#f0dcc8] px-4 py-3">
-        <div className="container-app flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#ff7f0a] to-[#8b0000] flex items-center justify-center text-white font-bold">
-              म
-            </div>
-            <span className="font-display font-bold text-[#1a1209]">
-              Mandirlok
-            </span>
-          </Link>
-          <Link
-            href="/"
-            className="text-sm text-[#6b5b45] hover:text-[#ff7f0a]"
-          >
-            ← Back
-          </Link>
+    <div
+      className="min-h-screen flex"
+      style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+    >
+      <style suppressHydrationWarning>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@400;500;600&display=swap');
+
+        .login-page { font-family: 'DM Sans', sans-serif; }
+        .display-font { font-family: 'Playfair Display', serif; }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          15%       { transform: translateX(-8px); }
+          30%       { transform: translateX(8px); }
+          45%       { transform: translateX(-6px); }
+          60%       { transform: translateX(6px); }
+          75%       { transform: translateX(-3px); }
+          90%       { transform: translateX(3px); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          33%       { transform: translateY(-8px) rotate(2deg); }
+          66%       { transform: translateY(-4px) rotate(-1deg); }
+        }
+        @keyframes pulse-ring {
+          0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
+          70%  { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
+          100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+        }
+        @keyframes success-pop {
+          0%   { transform: scale(0.5); opacity: 0; }
+          60%  { transform: scale(1.15); }
+          80%  { transform: scale(0.95); }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shimmer-btn {
+          0%   { background-position: -200% center; }
+          100% { background-position:  200% center; }
+        }
+        @keyframes diyas {
+          0%, 100% { opacity: 0.6; transform: scale(1); }
+          50%       { opacity: 1;   transform: scale(1.1); }
+        }
+
+        .fade-up { animation: fadeUp 0.5s ease-out both; }
+        .fade-up-1 { animation: fadeUp 0.5s 0.1s ease-out both; }
+        .fade-up-2 { animation: fadeUp 0.5s 0.2s ease-out both; }
+        .fade-up-3 { animation: fadeUp 0.5s 0.3s ease-out both; }
+        .fade-up-4 { animation: fadeUp 0.5s 0.4s ease-out both; }
+
+        .shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
+
+        .spinner {
+          width: 18px; height: 18px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+          display: inline-block;
+        }
+
+        .float-diya { animation: float 4s ease-in-out infinite; }
+        .float-diya-2 { animation: float 5s 1s ease-in-out infinite; }
+        .float-diya-3 { animation: float 6s 2s ease-in-out infinite; }
+
+        .btn-primary {
+          background: linear-gradient(90deg, #c2410c 0%, #ea580c 35%, #fb923c 55%, #ea580c 75%, #c2410c 100%);
+          background-size: 200% auto;
+          transition: background-position 0.4s ease, transform 0.15s ease, box-shadow 0.2s ease;
+        }
+        .btn-primary:hover {
+          animation: shimmer-btn 1.5s linear infinite;
+          box-shadow: 0 8px 30px rgba(234,88,12,0.45);
+          transform: translateY(-1px);
+        }
+        .btn-primary:active { transform: translateY(0) scale(0.98); }
+
+        .otp-input {
+          caret-color: #ea580c;
+          transition: all 0.2s ease;
+        }
+        .otp-input:focus {
+          border-color: #ea580c !important;
+          box-shadow: 0 0 0 3px rgba(234,88,12,0.15);
+          transform: scale(1.05);
+        }
+        .otp-input.filled {
+          border-color: #ea580c;
+          background: #fff7ed;
+          color: #c2410c;
+        }
+
+        .success-icon { animation: success-pop 0.6s cubic-bezier(.34,1.56,.64,1) forwards; }
+
+        .left-panel-deco {
+          background:
+            radial-gradient(ellipse at 20% 20%, rgba(251,146,60,0.15) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 80%, rgba(220,38,38,0.1) 0%, transparent 50%),
+            linear-gradient(145deg, #1a0500 0%, #3d0a00 40%, #2d0600 100%);
+        }
+
+        .email-input-wrap input:focus {
+          outline: none;
+          border-color: #ea580c;
+          box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
+        }
+        .google-btn:hover {
+          border-color: #ea580c;
+          background: #fff7ed;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+      `}</style>
+
+      {/* ── LEFT DECORATIVE PANEL ── */}
+      <div className="login-page hidden lg:flex lg:w-5/12 xl:w-[42%] left-panel-deco flex-col items-center justify-center relative overflow-hidden p-12">
+        {/* Decorative mandala ring */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+          <div className="w-[500px] h-[500px] rounded-full border-[40px] border-orange-300" />
+          <div className="absolute w-[380px] h-[380px] rounded-full border-[2px] border-dashed border-orange-400" />
+          <div className="absolute w-[260px] h-[260px] rounded-full border-[20px] border-orange-300" />
         </div>
-      </nav>
 
-      <main className="min-h-screen bg-[#fdf6ee] flex items-center justify-center px-4 pt-20 pb-10">
+        {/* Floating diyas */}
+        <div className="absolute top-16 left-12 float-diya text-4xl opacity-70">
+          🪔
+        </div>
+        <div className="absolute top-32 right-16 float-diya-2 text-3xl opacity-50">
+          🪔
+        </div>
+        <div className="absolute bottom-24 left-16 float-diya-3 text-3xl opacity-60">
+          🪔
+        </div>
+        <div className="absolute bottom-16 right-12 float-diya text-2xl opacity-40">
+          🪔
+        </div>
+        <div className="absolute top-1/2 left-8 float-diya-2 text-2xl opacity-30">
+          ✦
+        </div>
+        <div className="absolute top-1/3 right-8 float-diya-3 text-xl opacity-25">
+          ✦
+        </div>
+
+        {/* Main content */}
+        <div className="relative z-10 text-center">
+          {/* Temple icon */}
+          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-700 flex items-center justify-center text-5xl mx-auto mb-8 shadow-2xl shadow-orange-900/50 pulse-ring">
+            🛕
+          </div>
+
+          <h2 className="display-font text-4xl xl:text-5xl font-bold text-white mb-4 leading-tight">
+            Welcome to
+            <br />
+            <span className="text-orange-400">Mandirlok</span>
+          </h2>
+          <p className="text-orange-200/80 text-base leading-relaxed max-w-xs mx-auto mb-10">
+            Your sacred gateway to divine blessings. Connect with 500+ temples
+            across India — from anywhere in the world.
+          </p>
+
+          {/* Trust badges */}
+          <div className="space-y-3">
+            {[
+              { icon: "🙏", text: "1 Million+ Devotees Trust Us" },
+              { icon: "🛕", text: "500+ Sacred Temples" },
+              { icon: "📹", text: "Video Proof of Every Puja" },
+              { icon: "🔒", text: "100% Secure & Private" },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 bg-white/5 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/10"
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span className="text-white/80 text-sm font-medium">
+                  {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT FORM PANEL ── */}
+      <div className="login-page flex-1 flex items-center justify-center bg-[#fdf6ee] p-6 lg:p-12">
         <div className="w-full max-w-md">
-          <div className="bg-white border border-[#f0dcc8] rounded-3xl p-8 shadow-temple">
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#ff7f0a] to-[#8b0000] flex items-center justify-center text-white font-display font-bold text-2xl mx-auto mb-3 shadow-divine">
-                म
-              </div>
-              <h1 className="font-display font-bold text-xl text-[#1a1209]">
-                {step === "phone"
-                  ? "Welcome to Mandirlok"
-                  : step === "otp"
-                    ? "Verify OTP"
-                    : "Almost Done!"}
-              </h1>
-              <p className="text-xs text-[#6b5b45] mt-1">
-                {step === "phone"
-                  ? "Enter your mobile number to get started"
-                  : step === "otp"
-                    ? `OTP sent to ${countryCode.code} ${phone}`
-                    : "Tell us your name for personalized blessings"}
-              </p>
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8 fade-up">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">
+              🛕
             </div>
-
-            {step === "phone" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-[#6b5b45] uppercase tracking-wide mb-2 block">
-                    Mobile Number
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowCountries(!showCountries)}
-                        className="flex items-center gap-2 bg-[#fff8f0] border border-[#f0dcc8] rounded-xl px-3 h-[46px] hover:border-[#ffbd6e] transition-colors min-w-[90px]"
-                      >
-                        <span className="text-lg">{countryCode.flag}</span>
-                        <span className="text-sm font-semibold text-[#6b5b45]">
-                          {countryCode.code}
-                        </span>
-                        <span className="text-xs text-[#b89b7a]">▼</span>
-                      </button>
-                      {showCountries && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-40"
-                            onClick={() => setShowCountries(false)}
-                          />
-                          <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-[#f0dcc8] rounded-xl shadow-xl max-h-60 overflow-y-auto z-50">
-                            {COUNTRY_CODES.map((c) => (
-                              <button
-                                key={c.code}
-                                onClick={() => {
-                                  setCountryCode(c);
-                                  setShowCountries(false);
-                                  setPhone("");
-                                }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#fff8f0] transition-colors text-left"
-                              >
-                                <span className="text-lg">{c.flag}</span>
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-[#1a1209]">
-                                    {c.name}
-                                  </p>
-                                  <p className="text-xs text-[#6b5b45]">
-                                    {c.code}
-                                  </p>
-                                </div>
-                                {countryCode.code === c.code && (
-                                  <span className="text-[#ff7f0a]">✓</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) =>
-                        setPhone(
-                          e.target.value
-                            .replace(/\D/g, "")
-                            .slice(0, countryCode.length),
-                        )
-                      }
-                      placeholder={`${countryCode.length}-digit number`}
-                      className="input-divine flex-1"
-                      maxLength={countryCode.length}
-                    />
-                  </div>
-                  <p className="text-xs text-[#6b5b45] mt-1.5">
-                    📱 {countryCode.name} ({countryCode.code})
-                  </p>
-                </div>
-                <button
-                  onClick={sendOtp}
-                  disabled={phone.length !== countryCode.length || loading}
-                  className={`btn-saffron w-full flex items-center justify-center gap-2 ${phone.length !== countryCode.length ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {loading ? (
-                    <RefreshCw size={16} className="animate-spin" />
-                  ) : null}
-                  {loading ? "Sending…" : "Send OTP"}
-                  {!loading && <ArrowRight size={16} />}
-                </button>
-              </div>
-            )}
-
-            {step === "otp" && (
-              <div className="space-y-5">
-                <div>
-                  <label className="text-xs font-semibold text-[#6b5b45] uppercase tracking-wide mb-3 block text-center">
-                    Enter 6-digit OTP
-                  </label>
-                  <div className="flex gap-2 justify-center">
-                    {otp.map((digit, i) => (
-                      <input
-                        key={i}
-                        id={`otp-${i}`}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(e.target.value, i)}
-                        className="w-11 h-12 text-center text-lg font-bold border-2 border-[#f0dcc8] rounded-xl outline-none focus:border-[#ff7f0a] focus:shadow-[0_0_0_3px_rgba(255,127,10,0.12)] transition-all text-[#1a1209]"
-                      />
-                    ))}
-                  </div>
-                </div>
-                <button
-                  onClick={verifyOtp}
-                  disabled={otp.join("").length !== 6 || loading}
-                  className={`btn-saffron w-full flex items-center justify-center gap-2 ${otp.join("").length !== 6 ? "opacity-50 cursor-not-allowed" : ""}`}
-                >
-                  {loading ? (
-                    <RefreshCw size={16} className="animate-spin" />
-                  ) : null}
-                  {loading ? "Verifying…" : "Verify OTP"}
-                </button>
-                <div className="text-center">
-                  <button
-                    onClick={() => setStep("phone")}
-                    className="text-xs text-[#ff7f0a] hover:underline"
-                  >
-                    Change Number
-                  </button>
-                  <span className="text-[#b89b7a] mx-2">·</span>
-                  <button className="text-xs text-[#ff7f0a] hover:underline">
-                    Resend OTP
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step === "name" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-[#6b5b45] uppercase tracking-wide mb-1.5 block">
-                    Your Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="input-divine"
-                  />
-                </div>
-                <Link
-                  href="/"
-                  className="btn-saffron w-full flex items-center justify-center gap-2"
-                >
-                  🙏 Start My Journey
-                </Link>
-              </div>
-            )}
-
-            <div className="om-divider my-5 text-[#f0dcc8]">
-              <span className="text-sm text-[#b89b7a]">ॐ</span>
-            </div>
-
-            <p className="text-center text-[10px] text-[#b89b7a] leading-relaxed">
-              By continuing, you agree to our{" "}
-              <Link href="/terms" className="text-[#ff7f0a] hover:underline">
-                Terms
-              </Link>{" "}
-              and{" "}
-              <Link href="/privacy" className="text-[#ff7f0a] hover:underline">
-                Privacy Policy
-              </Link>
+            <h1 className="display-font text-2xl font-bold text-[#1a0500]">
+              Mandirlok
+            </h1>
+            <p className="text-orange-600 text-xs font-semibold tracking-widest uppercase mt-1">
+              Sacred Services
             </p>
           </div>
 
-          <p className="text-center mt-6 text-xs text-[#6b5b45]">
-            Are you a Pandit?{" "}
-            <Link
-              href="/pandit/login"
-              className="text-[#ff7f0a] font-semibold hover:underline"
-            >
-              Login to Pandit Portal
-            </Link>
-          </p>
+          {/* ── STEP 1: EMAIL ── */}
+          {step === "email" && (
+            <div key="email-step">
+              <div className="fade-up mb-2">
+                <span className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 text-xs font-bold px-3 py-1.5 rounded-full border border-orange-200">
+                  ✦ Sign in to your account
+                </span>
+              </div>
+              <h1 className="display-font fade-up-1 text-3xl xl:text-4xl font-bold text-[#1a0500] mb-2 leading-tight">
+                Enter your
+                <br />
+                Gmail address
+              </h1>
+              <p className="fade-up-2 text-gray-500 text-sm mb-8 leading-relaxed">
+                We'll send a 6-digit OTP to your Gmail. No password needed.
+              </p>
+
+              <div className={`space-y-5 fade-up-3 ${shake ? "shake" : ""}`}>
+                {/* Gmail input */}
+                <div className="email-input-wrap">
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">
+                    Gmail Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                      {/* Gmail G icon */}
+                      <svg className="w-5 h-5" viewBox="0 0 24 24">
+                        <path
+                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                          fill="#4285F4"
+                        />
+                        <path
+                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                          fill="#34A853"
+                        />
+                        <path
+                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                          fill="#FBBC05"
+                        />
+                        <path
+                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                          fill="#EA4335"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setError("");
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
+                      placeholder="yourname@gmail.com"
+                      className="w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-2xl text-[#1a0500] text-sm font-medium placeholder-gray-400 transition-all duration-200"
+                      autoFocus
+                      autoComplete="email"
+                    />
+                  </div>
+                  {error && (
+                    <p className="mt-2 text-red-500 text-xs flex items-center gap-1.5">
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {error}
+                    </p>
+                  )}
+                </div>
+
+                {/* Send OTP button */}
+                <button
+                  onClick={handleSendOtp}
+                  disabled={loading}
+                  className="btn-primary w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-sm shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner" />
+                      Sending OTP...
+                    </>
+                  ) : (
+                    <>
+                      Send OTP to Gmail
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-gray-200" />
+                  <span className="text-xs text-gray-400 font-medium">
+                    or continue with
+                  </span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+
+                {/* Google OAuth button */}
+                <button className="google-btn w-full flex items-center justify-center gap-3 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-700 transition-all duration-200">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Continue with Google
+                </button>
+              </div>
+
+              <p className="fade-up-4 mt-6 text-center text-xs text-gray-400 leading-relaxed">
+                By continuing, you agree to our{" "}
+                <Link
+                  href="/terms"
+                  className="text-orange-600 hover:underline font-medium"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  className="text-orange-600 hover:underline font-medium"
+                >
+                  Privacy Policy
+                </Link>
+              </p>
+            </div>
+          )}
+
+          {/* ── STEP 2: OTP ── */}
+          {step === "otp" && (
+            <div key="otp-step">
+              {/* Back button */}
+              <button
+                onClick={() => {
+                  setStep("email");
+                  setOtp(["", "", "", "", "", ""]);
+                  setError("");
+                }}
+                className="fade-up flex items-center gap-2 text-gray-500 hover:text-orange-600 text-sm font-medium mb-6 transition-colors group"
+              >
+                <svg
+                  className="w-4 h-4 group-hover:-translate-x-1 transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+                Back
+              </button>
+
+              {/* Email sent icon */}
+              <div className="fade-up flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-5 border border-orange-200">
+                <svg
+                  className="w-8 h-8 text-orange-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+
+              <h1 className="display-font fade-up-1 text-3xl font-bold text-[#1a0500] mb-2">
+                Check your Gmail
+              </h1>
+              <p className="fade-up-2 text-gray-500 text-sm mb-1 leading-relaxed">
+                We sent a 6-digit code to
+              </p>
+              <p className="fade-up-2 text-[#1a0500] text-sm font-bold mb-8 flex items-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+                {email}
+              </p>
+
+              {/* OTP boxes */}
+              <div className={`fade-up-3 ${shake ? "shake" : ""}`}>
+                <div className="flex gap-3 mb-4" onPaste={handleOtpPaste}>
+                  {otp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => {
+                        otpRefs.current[idx] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(idx, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                      className={`otp-input flex-1 h-14 text-center text-xl font-bold bg-white border-2 rounded-2xl transition-all duration-200 ${
+                        digit
+                          ? "filled border-orange-400 bg-orange-50 text-orange-700"
+                          : "border-gray-200 text-gray-900"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {error && (
+                  <p className="mb-4 text-red-500 text-xs flex items-center gap-1.5">
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {error}
+                  </p>
+                )}
+
+                {/* Verify button */}
+                <button
+                  onClick={handleVerify}
+                  disabled={loading || otp.join("").length < 6}
+                  className="btn-primary w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mb-4"
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      Verify & Sign In
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </>
+                  )}
+                </button>
+
+                {/* Resend */}
+                <div className="text-center text-sm text-gray-500">
+                  Didn't receive it?{" "}
+                  <button
+                    onClick={handleResend}
+                    disabled={resendTimer > 0}
+                    className={`font-bold transition-colors ${
+                      resendTimer > 0
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-orange-600 hover:text-orange-700 hover:underline"
+                    }`}
+                  >
+                    {resendTimer > 0
+                      ? `Resend in ${resendTimer}s`
+                      : "Resend OTP"}
+                  </button>
+                </div>
+
+                <p className="text-center text-xs text-gray-400 mt-3">
+                  💡{" "}
+                  <span className="italic">
+                    Demo: use code <strong>123456</strong> to login
+                  </span>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 3: SUCCESS ── */}
+          {step === "success" && (
+            <div key="success-step" className="text-center">
+              <div className="success-icon w-24 h-24 rounded-3xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl mx-auto mb-6 shadow-2xl shadow-green-200">
+                ✅
+              </div>
+              <h1 className="display-font text-3xl font-bold text-[#1a0500] mb-3">
+                Welcome back!
+              </h1>
+              <p className="text-gray-500 text-sm mb-2">You're signed in as</p>
+              <p className="text-[#1a0500] font-bold text-base mb-8">{email}</p>
+
+              <div className="space-y-3">
+                <Link
+                  href="/"
+                  className="btn-primary w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-lg"
+                >
+                  🛕 Go to Home
+                </Link>
+                <Link
+                  href="/poojas"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-orange-400 text-orange-600 font-bold text-sm hover:bg-orange-50 transition-colors"
+                >
+                  Book a Puja 🙏
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   );
 }
