@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
-type Step = "email" | "otp" | "success";
+type Step = "email" | "otp" | "name";
 
 export default function LoginPage() {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
@@ -37,17 +38,33 @@ export default function LoginPage() {
 
   const handleSendOtp = async () => {
     if (!isValidEmail(email)) {
-      setError("Please enter a valid Gmail address.");
+      setError("Please enter a valid email address.");
       triggerShake();
       return;
     }
     setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1400));
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStep("otp");
+        setResendTimer(30);
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      } else {
+        setError(data.message || "Failed to send OTP. Please try again.");
+        triggerShake();
+      }
+    } catch {
+      setError("Failed to send OTP. Please check your connection.");
+      triggerShake();
+    }
     setLoading(false);
-    setStep("otp");
-    setResendTimer(30);
-    setTimeout(() => otpRefs.current[0]?.focus(), 100);
   };
 
   const handleOtpChange = (idx: number, val: string) => {
@@ -85,16 +102,61 @@ export default function LoginPage() {
     }
     setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setLoading(false);
-    if (code !== "123456") {
-      setError("Incorrect OTP. Please try again.");
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: code }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        // If user already has a name, go home; otherwise collect name
+        if (data.hasName) {
+          window.location.href = "/";
+        } else {
+          setStep("name");
+        }
+      } else {
+        setError(data.message || "Incorrect OTP. Please try again.");
+        triggerShake();
+        setOtp(["", "", "", "", "", ""]);
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      }
+    } catch {
+      setError("Failed to verify OTP. Please check your connection.");
       triggerShake();
-      setOtp(["", "", "", "", "", ""]);
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
+    }
+    setLoading(false);
+  };
+
+  const handleSaveName = async () => {
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      triggerShake();
       return;
     }
-    setStep("success");
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/update-name", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = "/";
+      } else {
+        setError(data.message || "Failed to save name. Please try again.");
+        triggerShake();
+      }
+    } catch {
+      setError("Failed to save name. Please check your connection.");
+      triggerShake();
+    }
+    setLoading(false);
   };
 
   const handleResend = async () => {
@@ -102,10 +164,26 @@ export default function LoginPage() {
     setOtp(["", "", "", "", "", ""]);
     setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setResendTimer(30);
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
+      } else {
+        setError(data.message || "Failed to resend OTP.");
+        triggerShake();
+      }
+    } catch {
+      setError("Failed to resend OTP. Please check your connection.");
+      triggerShake();
+    }
     setLoading(false);
-    setResendTimer(30);
-    setTimeout(() => otpRefs.current[0]?.focus(), 100);
   };
 
   const triggerShake = () => {
@@ -149,6 +227,7 @@ export default function LoginPage() {
         .email-input-wrap input:focus { outline:none;border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,0.12); }
         .google-btn:hover { border-color:#ea580c;background:#fff7ed;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.08); }
         .pulse-ring { animation:pulse-ring 2s ease-out infinite; }
+        .name-input:focus { outline:none;border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,0.12); }
       `}</style>
 
       {/* LEFT DECORATIVE PANEL */}
@@ -158,18 +237,10 @@ export default function LoginPage() {
           <div className="absolute w-[380px] h-[380px] rounded-full border-[2px] border-dashed border-orange-400" />
           <div className="absolute w-[260px] h-[260px] rounded-full border-[20px] border-orange-300" />
         </div>
-        <div className="absolute top-16 left-12 float-diya text-4xl opacity-70">
-          🪔
-        </div>
-        <div className="absolute top-32 right-16 float-diya-2 text-3xl opacity-50">
-          🪔
-        </div>
-        <div className="absolute bottom-24 left-16 float-diya-3 text-3xl opacity-60">
-          🪔
-        </div>
-        <div className="absolute bottom-16 right-12 float-diya text-2xl opacity-40">
-          🪔
-        </div>
+        <div className="absolute top-16 left-12 float-diya text-4xl opacity-70">🪔</div>
+        <div className="absolute top-32 right-16 float-diya-2 text-3xl opacity-50">🪔</div>
+        <div className="absolute bottom-24 left-16 float-diya-3 text-3xl opacity-60">🪔</div>
+        <div className="absolute bottom-16 right-12 float-diya text-2xl opacity-40">🪔</div>
         <div className="relative z-10 text-center">
           <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-700 flex items-center justify-center text-5xl mx-auto mb-8 shadow-2xl shadow-orange-900/50 pulse-ring">
             🛕
@@ -195,9 +266,7 @@ export default function LoginPage() {
                 className="flex items-center gap-3 bg-white/5 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/10"
               >
                 <span className="text-xl">{item.icon}</span>
-                <span className="text-white/80 text-sm font-medium">
-                  {item.text}
-                </span>
+                <span className="text-white/80 text-sm font-medium">{item.text}</span>
               </div>
             ))}
           </div>
@@ -212,9 +281,7 @@ export default function LoginPage() {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">
               🛕
             </div>
-            <h1 className="display-font text-2xl font-bold text-[#1a0500]">
-              Mandirlok
-            </h1>
+            <h1 className="display-font text-2xl font-bold text-[#1a0500]">Mandirlok</h1>
             <p className="text-orange-600 text-xs font-semibold tracking-widest uppercase mt-1">
               Sacred Services
             </p>
@@ -231,35 +298,20 @@ export default function LoginPage() {
               <h1 className="display-font fade-up-1 text-3xl xl:text-4xl font-bold text-[#1a0500] mb-2 leading-tight">
                 Enter your
                 <br />
-                Gmail address
+                email address
               </h1>
               <p className="fade-up-2 text-gray-500 text-sm mb-8 leading-relaxed">
-                We'll send a 6-digit OTP to your Gmail. No password needed.
+                We'll send a 6-digit OTP to your email. No password needed.
               </p>
               <div className={`space-y-5 fade-up-3 ${shake ? "shake" : ""}`}>
                 <div className="email-input-wrap">
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">
-                    Gmail Address
+                    Email Address
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg className="w-5 h-5" viewBox="0 0 24 24">
-                        <path
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          fill="#4285F4"
-                        />
-                        <path
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          fill="#34A853"
-                        />
-                        <path
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                          fill="#FBBC05"
-                        />
-                        <path
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          fill="#EA4335"
-                        />
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <input
@@ -270,7 +322,7 @@ export default function LoginPage() {
                         setError("");
                       }}
                       onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                      placeholder="yourname@gmail.com"
+                      placeholder="yourname@email.com"
                       className="w-full pl-12 pr-4 py-4 bg-white border-2 border-gray-200 rounded-2xl text-[#1a0500] text-sm font-medium placeholder-gray-400 transition-all duration-200"
                       autoFocus
                       autoComplete="email"
@@ -278,16 +330,8 @@ export default function LoginPage() {
                   </div>
                   {error && (
                     <p className="mt-2 text-red-500 text-xs flex items-center gap-1.5">
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                       {error}
                     </p>
@@ -305,67 +349,33 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
-                      Send OTP to Gmail
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M17 8l4 4m0 0l-4 4m4-4H3"
-                        />
+                      Send OTP to Email
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                     </>
                   )}
                 </button>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-gray-200" />
-                  <span className="text-xs text-gray-400 font-medium">
-                    or continue with
-                  </span>
+                  <span className="text-xs text-gray-400 font-medium">or continue with</span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
                 <button className="google-btn w-full flex items-center justify-center gap-3 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-700 transition-all duration-200">
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                   </svg>
                   Continue with Google
                 </button>
               </div>
               <p className="fade-up-4 mt-6 text-center text-xs text-gray-400 leading-relaxed">
                 By continuing, you agree to our{" "}
-                <Link
-                  href="/terms"
-                  className="text-orange-600 hover:underline font-medium"
-                >
-                  Terms of Service
-                </Link>{" "}
+                <Link href="/terms" className="text-orange-600 hover:underline font-medium">Terms of Service</Link>{" "}
                 and{" "}
-                <Link
-                  href="/privacy"
-                  className="text-orange-600 hover:underline font-medium"
-                >
-                  Privacy Policy
-                </Link>
+                <Link href="/privacy" className="text-orange-600 hover:underline font-medium">Privacy Policy</Link>
               </p>
             </div>
           )}
@@ -381,76 +391,32 @@ export default function LoginPage() {
                 }}
                 className="fade-up flex items-center gap-2 text-gray-500 hover:text-orange-600 text-sm font-medium mb-6 transition-colors group"
               >
-                <svg
-                  className="w-4 h-4 group-hover:-translate-x-1 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
+                <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Back
               </button>
               <div className="fade-up flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-5 border border-orange-200">
-                <svg
-                  className="w-8 h-8 text-orange-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
+                <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
               <h1 className="display-font fade-up-1 text-3xl font-bold text-[#1a0500] mb-2">
-                Check your Gmail
+                Check your email
               </h1>
               <p className="fade-up-2 text-gray-500 text-sm mb-1 leading-relaxed">
                 We sent a 6-digit code to
               </p>
-              <p className="fade-up-2 text-[#1a0500] text-sm font-bold mb-8 flex items-center gap-2">
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
+              <p className="fade-up-2 text-[#1a0500] text-sm font-bold mb-8">
                 {email}
               </p>
 
-              {/* OTP boxes — FIXED compact width */}
               <div className={`fade-up-3 ${shake ? "shake" : ""}`}>
-                <div
-                  className="flex gap-2.5 justify-center mb-4"
-                  onPaste={handleOtpPaste}
-                >
+                <div className="flex gap-2.5 justify-center mb-4" onPaste={handleOtpPaste}>
                   {otp.map((digit, idx) => (
                     <input
                       key={idx}
-                      ref={(el) => {
-                        otpRefs.current[idx] = el;
-                      }}
+                      ref={(el) => { otpRefs.current[idx] = el; }}
                       type="text"
                       inputMode="numeric"
                       maxLength={1}
@@ -463,16 +429,8 @@ export default function LoginPage() {
                 </div>
                 {error && (
                   <p className="mb-4 text-red-500 text-xs flex items-center justify-center gap-1.5">
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     {error}
                   </p>
@@ -490,18 +448,8 @@ export default function LoginPage() {
                   ) : (
                     <>
                       Verify & Sign In{" "}
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M5 13l4 4L19 7"
-                        />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     </>
                   )}
@@ -510,48 +458,79 @@ export default function LoginPage() {
                   Didn't receive it?{" "}
                   <button
                     onClick={handleResend}
-                    disabled={resendTimer > 0}
+                    disabled={resendTimer > 0 || loading}
                     className={`font-bold transition-colors ${resendTimer > 0 ? "text-gray-400 cursor-not-allowed" : "text-orange-600 hover:text-orange-700 hover:underline"}`}
                   >
-                    {resendTimer > 0
-                      ? `Resend in ${resendTimer}s`
-                      : "Resend OTP"}
+                    {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
                   </button>
                 </div>
-                <p className="text-center text-xs text-gray-400 mt-3">
-                  💡{" "}
-                  <span className="italic">
-                    Demo: use code <strong>123456</strong> to login
-                  </span>
-                </p>
               </div>
             </div>
           )}
 
-          {/* STEP 3: SUCCESS */}
-          {step === "success" && (
-            <div key="success-step" className="text-center">
-              <div className="success-icon w-24 h-24 rounded-3xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl mx-auto mb-6 shadow-2xl shadow-green-200">
-                ✅
+          {/* STEP 3: NAME */}
+          {step === "name" && (
+            <div key="name-step">
+              <div className="success-icon w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-400 to-rose-600 flex items-center justify-center text-4xl mx-auto mb-6 shadow-2xl shadow-orange-200">
+                🙏
               </div>
-              <h1 className="display-font text-3xl font-bold text-[#1a0500] mb-3">
-                Welcome back!
+              <div className="fade-up mb-2 text-center">
+                <span className="inline-flex items-center gap-2 bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-200">
+                  ✓ Email verified successfully
+                </span>
+              </div>
+              <h1 className="display-font fade-up-1 text-3xl font-bold text-[#1a0500] mb-2 text-center mt-4">
+                Almost there!
               </h1>
-              <p className="text-gray-500 text-sm mb-2">You're signed in as</p>
-              <p className="text-[#1a0500] font-bold text-base mb-8">{email}</p>
-              <div className="space-y-3">
-                <Link
-                  href="/"
-                  className="btn-primary w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-lg"
+              <p className="fade-up-2 text-gray-500 text-sm mb-8 text-center leading-relaxed">
+                Tell us your name for a personalized divine experience.
+              </p>
+              <div className={`space-y-5 fade-up-3 ${shake ? "shake" : ""}`}>
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">
+                    Your Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      setError("");
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+                    placeholder="Enter your full name"
+                    className="name-input w-full px-4 py-4 bg-white border-2 border-gray-200 rounded-2xl text-[#1a0500] text-sm font-medium placeholder-gray-400 transition-all duration-200"
+                    autoFocus
+                    autoComplete="name"
+                  />
+                  {error && (
+                    <p className="mt-2 text-red-500 text-xs flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      {error}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleSaveName}
+                  disabled={loading}
+                  className="btn-primary w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-sm shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  🛕 Go to Home
-                </Link>
-                <Link
-                  href="/poojas"
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 border-orange-400 text-orange-600 font-bold text-sm hover:bg-orange-50 transition-colors"
-                >
-                  Book a Puja 🙏
-                </Link>
+                  {loading ? (
+                    <>
+                      <span className="spinner" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      🙏 Start My Journey
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}
