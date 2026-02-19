@@ -16,7 +16,6 @@ export default function LoginPage() {
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Countdown timer for resend
   useEffect(() => {
     if (resendTimer > 0) {
       timerRef.current = setInterval(() => {
@@ -44,7 +43,6 @@ export default function LoginPage() {
     }
     setError("");
     setLoading(true);
-    // Simulate API call
     await new Promise((r) => setTimeout(r, 1400));
     setLoading(false);
     setStep("otp");
@@ -58,15 +56,12 @@ export default function LoginPage() {
     next[idx] = digit;
     setOtp(next);
     setError("");
-    if (digit && idx < 5) {
-      otpRefs.current[idx + 1]?.focus();
-    }
+    if (digit && idx < 5) otpRefs.current[idx + 1]?.focus();
   };
 
   const handleOtpKeyDown = (idx: number, e: React.KeyboardEvent) => {
-    if (e.key === "Backspace" && !otp[idx] && idx > 0) {
+    if (e.key === "Backspace" && !otp[idx] && idx > 0)
       otpRefs.current[idx - 1]?.focus();
-    }
   };
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
@@ -92,7 +87,6 @@ export default function LoginPage() {
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1400));
     setLoading(false);
-    // Simulate wrong OTP for demo (any code except 123456)
     if (code !== "123456") {
       setError("Incorrect OTP. Please try again.");
       triggerShake();
@@ -122,136 +116,48 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex"
-      style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       <style suppressHydrationWarning>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@400;500;600&display=swap');
-
-        .login-page { font-family: 'DM Sans', sans-serif; }
         .display-font { font-family: 'Playfair Display', serif; }
-
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          15%       { transform: translateX(-8px); }
-          30%       { transform: translateX(8px); }
-          45%       { transform: translateX(-6px); }
-          60%       { transform: translateX(6px); }
-          75%       { transform: translateX(-3px); }
-          90%       { transform: translateX(3px); }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          33%       { transform: translateY(-8px) rotate(2deg); }
-          66%       { transform: translateY(-4px) rotate(-1deg); }
-        }
-        @keyframes pulse-ring {
-          0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
-          70%  { box-shadow: 0 0 0 12px rgba(249,115,22,0); }
-          100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-        }
-        @keyframes success-pop {
-          0%   { transform: scale(0.5); opacity: 0; }
-          60%  { transform: scale(1.15); }
-          80%  { transform: scale(0.95); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes shimmer-btn {
-          0%   { background-position: -200% center; }
-          100% { background-position:  200% center; }
-        }
-        @keyframes diyas {
-          0%, 100% { opacity: 0.6; transform: scale(1); }
-          50%       { opacity: 1;   transform: scale(1.1); }
-        }
-
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)} 45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)} }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes float { 0%,100%{transform:translateY(0px) rotate(0deg)} 33%{transform:translateY(-8px) rotate(2deg)} 66%{transform:translateY(-4px) rotate(-1deg)} }
+        @keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(249,115,22,0.4)} 70%{box-shadow:0 0 0 12px rgba(249,115,22,0)} 100%{box-shadow:0 0 0 0 rgba(249,115,22,0)} }
+        @keyframes success-pop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.15)} 80%{transform:scale(0.95)} 100%{transform:scale(1);opacity:1} }
+        @keyframes shimmer-btn { 0%{background-position:-200% center} 100%{background-position:200% center} }
         .fade-up { animation: fadeUp 0.5s ease-out both; }
         .fade-up-1 { animation: fadeUp 0.5s 0.1s ease-out both; }
         .fade-up-2 { animation: fadeUp 0.5s 0.2s ease-out both; }
         .fade-up-3 { animation: fadeUp 0.5s 0.3s ease-out both; }
         .fade-up-4 { animation: fadeUp 0.5s 0.4s ease-out both; }
-
         .shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
-
-        .spinner {
-          width: 18px; height: 18px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top-color: white;
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-          display: inline-block;
-        }
-
+        .spinner { width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block; }
         .float-diya { animation: float 4s ease-in-out infinite; }
         .float-diya-2 { animation: float 5s 1s ease-in-out infinite; }
         .float-diya-3 { animation: float 6s 2s ease-in-out infinite; }
-
-        .btn-primary {
-          background: linear-gradient(90deg, #c2410c 0%, #ea580c 35%, #fb923c 55%, #ea580c 75%, #c2410c 100%);
-          background-size: 200% auto;
-          transition: background-position 0.4s ease, transform 0.15s ease, box-shadow 0.2s ease;
-        }
-        .btn-primary:hover {
-          animation: shimmer-btn 1.5s linear infinite;
-          box-shadow: 0 8px 30px rgba(234,88,12,0.45);
-          transform: translateY(-1px);
-        }
-        .btn-primary:active { transform: translateY(0) scale(0.98); }
-
-        .otp-input {
-          caret-color: #ea580c;
-          transition: all 0.2s ease;
-        }
-        .otp-input:focus {
-          border-color: #ea580c !important;
-          box-shadow: 0 0 0 3px rgba(234,88,12,0.15);
-          transform: scale(1.05);
-        }
-        .otp-input.filled {
-          border-color: #ea580c;
-          background: #fff7ed;
-          color: #c2410c;
-        }
-
-        .success-icon { animation: success-pop 0.6s cubic-bezier(.34,1.56,.64,1) forwards; }
-
-        .left-panel-deco {
-          background:
-            radial-gradient(ellipse at 20% 20%, rgba(251,146,60,0.15) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 80%, rgba(220,38,38,0.1) 0%, transparent 50%),
-            linear-gradient(145deg, #1a0500 0%, #3d0a00 40%, #2d0600 100%);
-        }
-
-        .email-input-wrap input:focus {
-          outline: none;
-          border-color: #ea580c;
-          box-shadow: 0 0 0 3px rgba(234,88,12,0.12);
-        }
-        .google-btn:hover {
-          border-color: #ea580c;
-          background: #fff7ed;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        }
-        .pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+        .btn-primary { background:linear-gradient(90deg,#c2410c 0%,#ea580c 35%,#fb923c 55%,#ea580c 75%,#c2410c 100%);background-size:200% auto;transition:background-position 0.4s ease,transform 0.15s ease,box-shadow 0.2s ease; }
+        .btn-primary:hover { animation:shimmer-btn 1.5s linear infinite;box-shadow:0 8px 30px rgba(234,88,12,0.45);transform:translateY(-1px); }
+        .btn-primary:active { transform:translateY(0) scale(0.98); }
+        .otp-input { caret-color:#ea580c;transition:all 0.2s ease; }
+        .otp-input:focus { border-color:#ea580c !important;box-shadow:0 0 0 3px rgba(234,88,12,0.15);transform:scale(1.08); }
+        .otp-input.filled { border-color:#ea580c;background:#fff7ed;color:#c2410c; }
+        .success-icon { animation:success-pop 0.6s cubic-bezier(.34,1.56,.64,1) forwards; }
+        .left-panel-deco { background:radial-gradient(ellipse at 20% 20%,rgba(251,146,60,0.15) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(220,38,38,0.1) 0%,transparent 50%),linear-gradient(145deg,#1a0500 0%,#3d0a00 40%,#2d0600 100%); }
+        .email-input-wrap input:focus { outline:none;border-color:#ea580c;box-shadow:0 0 0 3px rgba(234,88,12,0.12); }
+        .google-btn:hover { border-color:#ea580c;background:#fff7ed;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.08); }
+        .pulse-ring { animation:pulse-ring 2s ease-out infinite; }
       `}</style>
 
-      {/* ── LEFT DECORATIVE PANEL ── */}
-      <div className="login-page hidden lg:flex lg:w-5/12 xl:w-[42%] left-panel-deco flex-col items-center justify-center relative overflow-hidden p-12">
-        {/* Decorative mandala ring */}
+      {/* LEFT DECORATIVE PANEL */}
+      <div className="hidden lg:flex lg:w-5/12 xl:w-[42%] left-panel-deco flex-col items-center justify-center relative overflow-hidden p-12">
         <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
           <div className="w-[500px] h-[500px] rounded-full border-[40px] border-orange-300" />
           <div className="absolute w-[380px] h-[380px] rounded-full border-[2px] border-dashed border-orange-400" />
           <div className="absolute w-[260px] h-[260px] rounded-full border-[20px] border-orange-300" />
         </div>
-
-        {/* Floating diyas */}
         <div className="absolute top-16 left-12 float-diya text-4xl opacity-70">
           🪔
         </div>
@@ -264,20 +170,10 @@ export default function LoginPage() {
         <div className="absolute bottom-16 right-12 float-diya text-2xl opacity-40">
           🪔
         </div>
-        <div className="absolute top-1/2 left-8 float-diya-2 text-2xl opacity-30">
-          ✦
-        </div>
-        <div className="absolute top-1/3 right-8 float-diya-3 text-xl opacity-25">
-          ✦
-        </div>
-
-        {/* Main content */}
         <div className="relative z-10 text-center">
-          {/* Temple icon */}
           <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-orange-500 to-rose-700 flex items-center justify-center text-5xl mx-auto mb-8 shadow-2xl shadow-orange-900/50 pulse-ring">
             🛕
           </div>
-
           <h2 className="display-font text-4xl xl:text-5xl font-bold text-white mb-4 leading-tight">
             Welcome to
             <br />
@@ -287,8 +183,6 @@ export default function LoginPage() {
             Your sacred gateway to divine blessings. Connect with 500+ temples
             across India — from anywhere in the world.
           </p>
-
-          {/* Trust badges */}
           <div className="space-y-3">
             {[
               { icon: "🙏", text: "1 Million+ Devotees Trust Us" },
@@ -310,8 +204,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── RIGHT FORM PANEL ── */}
-      <div className="login-page flex-1 flex items-center justify-center bg-[#fdf6ee] p-6 lg:p-12">
+      {/* RIGHT FORM PANEL */}
+      <div className="flex-1 flex items-center justify-center bg-[#fdf6ee] p-6 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8 fade-up">
@@ -326,7 +220,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* ── STEP 1: EMAIL ── */}
+          {/* STEP 1: EMAIL */}
           {step === "email" && (
             <div key="email-step">
               <div className="fade-up mb-2">
@@ -342,16 +236,13 @@ export default function LoginPage() {
               <p className="fade-up-2 text-gray-500 text-sm mb-8 leading-relaxed">
                 We'll send a 6-digit OTP to your Gmail. No password needed.
               </p>
-
               <div className={`space-y-5 fade-up-3 ${shake ? "shake" : ""}`}>
-                {/* Gmail input */}
                 <div className="email-input-wrap">
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">
                     Gmail Address
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                      {/* Gmail G icon */}
                       <svg className="w-5 h-5" viewBox="0 0 24 24">
                         <path
                           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -402,8 +293,6 @@ export default function LoginPage() {
                     </p>
                   )}
                 </div>
-
-                {/* Send OTP button */}
                 <button
                   onClick={handleSendOtp}
                   disabled={loading}
@@ -433,8 +322,6 @@ export default function LoginPage() {
                     </>
                   )}
                 </button>
-
-                {/* Divider */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-gray-200" />
                   <span className="text-xs text-gray-400 font-medium">
@@ -442,8 +329,6 @@ export default function LoginPage() {
                   </span>
                   <div className="flex-1 h-px bg-gray-200" />
                 </div>
-
-                {/* Google OAuth button */}
                 <button className="google-btn w-full flex items-center justify-center gap-3 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-700 transition-all duration-200">
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
@@ -466,7 +351,6 @@ export default function LoginPage() {
                   Continue with Google
                 </button>
               </div>
-
               <p className="fade-up-4 mt-6 text-center text-xs text-gray-400 leading-relaxed">
                 By continuing, you agree to our{" "}
                 <Link
@@ -486,10 +370,9 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ── STEP 2: OTP ── */}
+          {/* STEP 2: OTP */}
           {step === "otp" && (
             <div key="otp-step">
-              {/* Back button */}
               <button
                 onClick={() => {
                   setStep("email");
@@ -513,8 +396,6 @@ export default function LoginPage() {
                 </svg>
                 Back
               </button>
-
-              {/* Email sent icon */}
               <div className="fade-up flex items-center justify-center w-16 h-16 bg-orange-100 rounded-2xl mb-5 border border-orange-200">
                 <svg
                   className="w-8 h-8 text-orange-500"
@@ -530,7 +411,6 @@ export default function LoginPage() {
                   />
                 </svg>
               </div>
-
               <h1 className="display-font fade-up-1 text-3xl font-bold text-[#1a0500] mb-2">
                 Check your Gmail
               </h1>
@@ -559,9 +439,12 @@ export default function LoginPage() {
                 {email}
               </p>
 
-              {/* OTP boxes */}
+              {/* OTP boxes — FIXED compact width */}
               <div className={`fade-up-3 ${shake ? "shake" : ""}`}>
-                <div className="flex gap-3 mb-4" onPaste={handleOtpPaste}>
+                <div
+                  className="flex gap-2.5 justify-center mb-4"
+                  onPaste={handleOtpPaste}
+                >
                   {otp.map((digit, idx) => (
                     <input
                       key={idx}
@@ -574,17 +457,12 @@ export default function LoginPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                      className={`otp-input flex-1 h-14 text-center text-xl font-bold bg-white border-2 rounded-2xl transition-all duration-200 ${
-                        digit
-                          ? "filled border-orange-400 bg-orange-50 text-orange-700"
-                          : "border-gray-200 text-gray-900"
-                      }`}
+                      className={`otp-input w-11 h-12 text-center text-lg font-bold bg-white border-2 rounded-xl transition-all duration-200 ${digit ? "filled border-orange-400 bg-orange-50 text-orange-700" : "border-gray-200 text-gray-900"}`}
                     />
                   ))}
                 </div>
-
                 {error && (
-                  <p className="mb-4 text-red-500 text-xs flex items-center gap-1.5">
+                  <p className="mb-4 text-red-500 text-xs flex items-center justify-center gap-1.5">
                     <svg
                       className="w-3.5 h-3.5"
                       fill="currentColor"
@@ -599,8 +477,6 @@ export default function LoginPage() {
                     {error}
                   </p>
                 )}
-
-                {/* Verify button */}
                 <button
                   onClick={handleVerify}
                   disabled={loading || otp.join("").length < 6}
@@ -613,7 +489,7 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
-                      Verify & Sign In
+                      Verify & Sign In{" "}
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -630,25 +506,18 @@ export default function LoginPage() {
                     </>
                   )}
                 </button>
-
-                {/* Resend */}
                 <div className="text-center text-sm text-gray-500">
                   Didn't receive it?{" "}
                   <button
                     onClick={handleResend}
                     disabled={resendTimer > 0}
-                    className={`font-bold transition-colors ${
-                      resendTimer > 0
-                        ? "text-gray-400 cursor-not-allowed"
-                        : "text-orange-600 hover:text-orange-700 hover:underline"
-                    }`}
+                    className={`font-bold transition-colors ${resendTimer > 0 ? "text-gray-400 cursor-not-allowed" : "text-orange-600 hover:text-orange-700 hover:underline"}`}
                   >
                     {resendTimer > 0
                       ? `Resend in ${resendTimer}s`
                       : "Resend OTP"}
                   </button>
                 </div>
-
                 <p className="text-center text-xs text-gray-400 mt-3">
                   💡{" "}
                   <span className="italic">
@@ -659,7 +528,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ── STEP 3: SUCCESS ── */}
+          {/* STEP 3: SUCCESS */}
           {step === "success" && (
             <div key="success-step" className="text-center">
               <div className="success-icon w-24 h-24 rounded-3xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center text-5xl mx-auto mb-6 shadow-2xl shadow-green-200">
@@ -670,7 +539,6 @@ export default function LoginPage() {
               </h1>
               <p className="text-gray-500 text-sm mb-2">You're signed in as</p>
               <p className="text-[#1a0500] font-bold text-base mb-8">{email}</p>
-
               <div className="space-y-3">
                 <Link
                   href="/"
