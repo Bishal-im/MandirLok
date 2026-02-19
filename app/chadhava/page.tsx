@@ -2,623 +2,549 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import TempleImage from "@/components/ui/TempleImage";
-import { ShoppingCart, Plus, Check, Info, X } from "lucide-react";
 
-interface ChadhavaItem {
-  id: number;
-  name: string;
-  hindiName: string;
-  price: number;
-  emoji: string;
-  description: string;
-  significance: string;
-  temples: string[];
-  category: string;
-  popular?: boolean;
-  image?: string;
+// ── Data ──────────────────────────────────────────────────────────────────────
+const FILTERS = [
+  "All Pujas",
+  "Shiva",
+  "Vishnu",
+  "Devi",
+  "Ganesha",
+  "Surya",
+  "Navgraha",
+];
+
+const SORT_OPTIONS = [
+  "Most Popular",
+  "Upcoming Date",
+  "Price: Low to High",
+  "Price: High to Low",
+];
+
+const POOJAS = [
+  {
+    id: "mahakaleshwar-rudrabhishek",
+    title: "Mahakaleshwar Rudrabhishek & Bhasma Aarti",
+    temple: "Shri Mahakaleshwar Jyotirlinga, Ujjain, MP",
+    date: "Every Monday, Maha Shivratri",
+    deity: "Shiva",
+    description:
+      "The most powerful Rudrabhishek performed at the only south-facing Jyotirlinga. Bhasma Aarti is offered at dawn. Performed in your name sankalp by temple priests.",
+    price: "₹2,100",
+    originalPrice: "₹2,800",
+    tag: "MOST POPULAR",
+    tagColor: "bg-orange-500",
+    benefits: [
+      "Peace & prosperity",
+      "Health & longevity",
+      "Removal of obstacles",
+    ],
+    duration: "2 hours",
+    participants: "Individual / Family",
+  },
+  {
+    id: "kashi-rudrabhishek",
+    title: "Kashi Vishwanath Rudrabhishek",
+    temple: "Shri Kashi Vishwanath Temple, Varanasi, UP",
+    date: "Every Monday & Pradosh Tithi",
+    deity: "Shiva",
+    description:
+      "A sacred Rudrabhishek on the banks of the holy Ganga at one of India's most powerful Shiva temples. Receive blessings of Moksha and divine grace.",
+    price: "₹1,500",
+    originalPrice: "₹2,000",
+    tag: "TRENDING",
+    tagColor: "bg-amber-500",
+    benefits: ["Moksha blessings", "Kaal Sarp dosh remedy", "Pitru shanti"],
+    duration: "1.5 hours",
+    participants: "Individual",
+  },
+  {
+    id: "tirupati-archana",
+    title: "Tirupati Balaji Vishesh Archana",
+    temple: "Sri Venkateswara Temple, Tirupati, AP",
+    date: "Every Day",
+    deity: "Vishnu",
+    description:
+      "Special Archana at the world's most visited temple. Sahasranama Archana performed with 1008 names of Lord Venkateswara for wealth and wish fulfilment.",
+    price: "₹551",
+    originalPrice: "₹751",
+    tag: "SPECIAL OFFER",
+    tagColor: "bg-rose-500",
+    benefits: ["Wealth & prosperity", "Wish fulfilment", "Marriage blessings"],
+    duration: "45 mins",
+    participants: "Individual / Family",
+  },
+  {
+    id: "siddhivinayak-puja",
+    title: "Siddhivinayak Maha Abhishek",
+    temple: "Shree Siddhivinayak Temple, Mumbai, MH",
+    date: "Every Wednesday",
+    deity: "Ganesha",
+    description:
+      "Maha Abhishek and Archana at the most celebrated Ganesha temple in Maharashtra. Perfect for new beginnings, career success and business growth.",
+    price: "₹1,100",
+    originalPrice: "₹1,500",
+    tag: "NEW",
+    tagColor: "bg-teal-500",
+    benefits: ["Business success", "Education blessings", "Obstacle removal"],
+    duration: "1 hour",
+    participants: "Individual",
+  },
+  {
+    id: "bagalamukhi-havan",
+    title: "Bagalamukhi Havan & Chadhava",
+    temple: "Maa Baglamukhi Pitambara Peeth, Datia, MP",
+    date: "Every Tuesday",
+    deity: "Devi",
+    description:
+      "For victory over enemies and relief from legal issues. Havan performed by experienced purohitjis with full Vedic procedures.",
+    price: "₹3,100",
+    originalPrice: "₹4,000",
+    tag: "POWERFUL",
+    tagColor: "bg-purple-500",
+    benefits: [
+      "Victory over enemies",
+      "Court case relief",
+      "Protection from evil",
+    ],
+    duration: "3 hours",
+    participants: "Individual / Family",
+  },
+  {
+    id: "navgraha-puja",
+    title: "Navgrah Shanti Maha Puja",
+    temple: "Shri Navagraha Shani Mandir, Ujjain, MP",
+    date: "Every Saturday",
+    deity: "Navgraha",
+    description:
+      "Complete Navgraha Shanti puja to pacify all 9 planetary energies. Ideal for people experiencing Shani Sade Saati, Rahu/Ketu dasha.",
+    price: "₹1,800",
+    originalPrice: "₹2,400",
+    tag: "",
+    tagColor: "",
+    benefits: ["Sade Saati relief", "Dasha shanti", "Career growth"],
+    duration: "2.5 hours",
+    participants: "Individual",
+  },
+  {
+    id: "vaishno-devi-aarti",
+    title: "Mata Vaishno Devi Aarti Seva",
+    temple: "Shri Mata Vaishno Devi Bhavan, Katra",
+    date: "Every Friday & Navratri",
+    deity: "Devi",
+    description:
+      "Special Aarti and Chadhava at the most visited Shakti shrine in northern India. Receive blessings of Mata for health, protection and prosperity.",
+    price: "₹800",
+    originalPrice: "₹1,100",
+    tag: "",
+    tagColor: "",
+    benefits: ["Divine protection", "Health blessings", "Family well-being"],
+    duration: "1 hour",
+    participants: "Individual / Family",
+  },
+  {
+    id: "surya-puja",
+    title: "Surya Sankranti Mahaseva",
+    temple: "Shri Galtaji Surya Temple, Jaipur, RJ",
+    date: "Every Sunday & Sankranti",
+    deity: "Surya",
+    description:
+      "Worship the Sun God on his most powerful day for career success, government favour and health. Offered at the ancient Galtaji Surya Temple.",
+    price: "₹1,200",
+    originalPrice: "₹1,600",
+    tag: "",
+    tagColor: "",
+    benefits: [
+      "Government job success",
+      "Health & vitality",
+      "Leadership qualities",
+    ],
+    duration: "1.5 hours",
+    participants: "Individual",
+  },
+  {
+    id: "hanuman-chadhava",
+    title: "Hanuman Garhi Special Chadhava",
+    temple: "Shri Hanuman Garhi Temple, Ayodhya, UP",
+    date: "Every Tuesday & Saturday",
+    deity: "Shiva",
+    description:
+      "Sacred offering at Hanuman Garhi — the divine protector's abode. For protection from negative energies, strength and victory in all endeavours.",
+    price: "₹750",
+    originalPrice: "₹1,000",
+    tag: "",
+    tagColor: "",
+    benefits: ["Protection from evil", "Courage & strength", "Shani shanti"],
+    duration: "45 mins",
+    participants: "Individual",
+  },
+];
+
+// ── Image Placeholder ──────────────────────────────────────────────────────────
+function ImagePlaceholder({
+  label = "",
+  className = "",
+  gradient = "from-orange-800/60 to-red-900/70",
+}: {
+  label?: string;
+  className?: string;
+  gradient?: string;
+}) {
+  return (
+    <div
+      className={`relative bg-gradient-to-br ${gradient} flex items-center justify-center overflow-hidden ${className}`}
+    >
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+        }}
+      />
+      <div className="flex flex-col items-center text-white/50 gap-1 z-10 p-4">
+        <span className="text-3xl">🙏</span>
+        {label && (
+          <p className="text-xs text-center opacity-70 line-clamp-2 max-w-[120px]">
+            {label}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
-const CHADHAVA_ITEMS: ChadhavaItem[] = [
-  // Flowers & Garlands
-  {
-    id: 1,
-    name: "Marigold Garland",
-    hindiName: "गेंदे की माला",
-    price: 151,
-    emoji: "🌼",
-    category: "Flowers & Garlands",
-    description:
-      "Fresh, fragrant marigold garland offered to the deity with devotion and prayers.",
-    significance:
-      "Marigolds are considered auspicious in Hinduism and are the favorite of Lord Ganesha and Durga Maa.",
-    temples: ["Kashi Vishwanath", "Siddhivinayak", "All Temples"],
-    popular: true,
-  },
-  {
-    id: 2,
-    name: "Rose Flower Offering",
-    hindiName: "गुलाब फूल",
-    price: 101,
-    emoji: "🌹",
-    category: "Flowers & Garlands",
-    description:
-      "Fresh red roses offered as a symbol of devotion and love for the divine.",
-    significance:
-      "Roses symbolize divine love and purity. They are especially dear to Goddess Lakshmi.",
-    temples: ["Siddhivinayak", "Tirupati Balaji"],
-  },
-  {
-    id: 3,
-    name: "Lotus Flower",
-    hindiName: "कमल का फूल",
-    price: 201,
-    emoji: "🪷",
-    category: "Flowers & Garlands",
-    description:
-      "Sacred white lotus offered representing spiritual awakening and divine beauty.",
-    significance:
-      "The lotus is the most sacred flower in Hinduism, associated with Lakshmi, Saraswati & Brahma.",
-    temples: ["Tirupati Balaji", "Vaishno Devi"],
-    popular: true,
-  },
-  {
-    id: 4,
-    name: "Bel Patra",
-    hindiName: "बेल पत्र",
-    price: 51,
-    emoji: "🌿",
-    category: "Sacred Leaves",
-    description:
-      "Three-leaved bel patra (wood apple leaves) — most sacred offering to Lord Shiva.",
-    significance:
-      "Bel patra is the most beloved offering to Shiva. Even a single bel patra pleases Shivji more than a thousand flowers.",
-    temples: ["Kashi Vishwanath", "Mahakaleshwar", "Somnath"],
-    popular: true,
-  },
-  {
-    id: 5,
-    name: "Tulsi Leaves",
-    hindiName: "तुलसी पत्र",
-    price: 51,
-    emoji: "🌱",
-    category: "Sacred Leaves",
-    description:
-      "Sacred tulsi (holy basil) leaves, considered extremely pure and holy.",
-    significance:
-      "Tulsi is the most sacred plant in Vaishnavism. It is especially dear to Lord Vishnu and Krishna.",
-    temples: ["Tirupati Balaji", "Siddhivinayak"],
-  },
-  // Prasad & Food
-  {
-    id: 6,
-    name: "Panchamrit",
-    hindiName: "पंचामृत",
-    price: 251,
-    emoji: "🥛",
-    category: "Prasad & Food",
-    description:
-      "Sacred mixture of milk, curd, honey, ghee and sugar used for abhishek.",
-    significance:
-      "Panchamrit is used to bathe the deity during abhishek. Each ingredient represents a divine quality.",
-    temples: ["Kashi Vishwanath", "All Shiva Temples"],
-    popular: true,
-  },
-  {
-    id: 7,
-    name: "Modak Offering",
-    hindiName: "मोदक",
-    price: 251,
-    emoji: "🥮",
-    category: "Prasad & Food",
-    description:
-      "21 pieces of pure ghee modak — Lord Ganesha's favorite sweet.",
-    significance:
-      "Modak is the most beloved sweet of Lord Ganesha. Offering 21 modaks is considered extremely auspicious.",
-    temples: ["Siddhivinayak"],
-    popular: true,
-  },
-  {
-    id: 8,
-    name: "Mishri & Makhana",
-    hindiName: "मिश्री और मखाना",
-    price: 151,
-    emoji: "🍬",
-    category: "Prasad & Food",
-    description:
-      "Pure crystallized sugar (mishri) and lotus seeds (makhana) offered as prasad.",
-    significance:
-      "Mishri represents the sweetness of devotion. Makhana is especially dear to Lord Vishnu.",
-    temples: ["Tirupati Balaji", "All Vishnu Temples"],
-  },
-  {
-    id: 9,
-    name: "Prasad Thali",
-    hindiName: "प्रसाद थाली",
-    price: 351,
-    emoji: "🍱",
-    category: "Prasad & Food",
-    description:
-      "A complete prasad thali with seasonal fruits, sweets, and panchamrit.",
-    significance:
-      "A complete offering that includes all five elements, ensuring holistic divine blessings.",
-    temples: ["All Temples"],
-    popular: true,
-  },
-  // Ritual Items
-  {
-    id: 10,
-    name: "Coconut Offering",
-    hindiName: "नारियल",
-    price: 101,
-    emoji: "🥥",
-    category: "Ritual Items",
-    description:
-      "Whole coconut broken as offering — symbolizing the ego surrendered to the divine.",
-    significance:
-      "Breaking a coconut symbolizes the breaking of the ego (husk) to reveal the pure soul (white inside).",
-    temples: ["All Temples"],
-    popular: true,
-  },
-  {
-    id: 11,
-    name: "Pure Ghee Diya",
-    hindiName: "शुद्ध घी का दीपक",
-    price: 251,
-    emoji: "🪔",
-    category: "Ritual Items",
-    description:
-      "Clay diya lit with pure cow ghee in your name before the deity.",
-    significance:
-      "A lit diya represents knowledge, light and dispelling of darkness and ignorance.",
-    temples: ["All Temples"],
-    popular: true,
-  },
-  {
-    id: 12,
-    name: "Dhatura",
-    hindiName: "धतूरा",
-    price: 51,
-    emoji: "🌸",
-    category: "Ritual Items",
-    description: "Sacred dhatura flowers — exclusively offered to Lord Shiva.",
-    significance:
-      "Dhatura is one of the few flowers that Lord Shiva is particularly fond of.",
-    temples: ["Kashi Vishwanath", "Mahakaleshwar", "Somnath"],
-  },
-  {
-    id: 13,
-    name: "Sindoor & Shringar",
-    hindiName: "सिंदूर और श्रृंगार",
-    price: 501,
-    emoji: "🔴",
-    category: "Ritual Items",
-    description:
-      "Sacred adornment (shringar) for the deity including sindoor, bangles and flowers.",
-    significance:
-      "Shringar represents our offering of beauty and love to the divine feminine.",
-    temples: ["Vaishno Devi", "Siddhivinayak"],
-  },
-  // Special
-  {
-    id: 14,
-    name: "Gold Foil Chadar",
-    hindiName: "सोने का वर्क",
-    price: 2100,
-    emoji: "✨",
-    category: "Special Offerings",
-    description:
-      "Gold-foil embossed chadar draped over the deity with full ceremony.",
-    significance:
-      "Offering a chadar is one of the highest forms of offering, symbolizing royal submission to the divine.",
-    temples: ["Vaishno Devi", "Shirdi Sai Baba"],
-    popular: true,
-  },
-  {
-    id: 15,
-    name: "Silver Abhishek Jal",
-    hindiName: "चांदी का अभिषेक जल",
-    price: 1100,
-    emoji: "💧",
-    category: "Special Offerings",
-    description:
-      "Holy water from Ganga stored in a silver vessel, poured over the Shivling.",
-    significance:
-      "Ganga jal is the purest water in the universe. Abhishek with Ganga jal is extremely meritorious.",
-    temples: ["Kashi Vishwanath"],
-  },
-  {
-    id: 16,
-    name: "Navratna Shringar",
-    hindiName: "नवरत्न श्रृंगार",
-    price: 5100,
-    emoji: "💎",
-    category: "Special Offerings",
-    description:
-      "Precious nine-gemstone adornment (replica) offered to the deity on special occasions.",
-    significance:
-      "Navratna represents nine planets. Offering this ensures planetary blessings across all spheres of life.",
-    temples: ["Tirupati Balaji", "Vaishno Devi"],
-  },
-];
+// ── Puja Card ─────────────────────────────────────────────────────────────────
+function PujaCard({ puja }: { puja: (typeof POOJAS)[0] }) {
+  return (
+    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col">
+      {/* Image Area */}
+      <div className="relative h-52 overflow-hidden">
+        <ImagePlaceholder
+          className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+          label={puja.title}
+        />
+        {puja.tag && (
+          <span
+            className={`absolute top-3 left-3 ${puja.tagColor} text-white text-xs font-bold px-3 py-1 rounded-full`}
+          >
+            {puja.tag}
+          </span>
+        )}
+        <div className="absolute bottom-3 right-3">
+          <span className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
+            {puja.deity}
+          </span>
+        </div>
+      </div>
 
-const CATEGORIES = [
-  "All",
-  "Flowers & Garlands",
-  "Sacred Leaves",
-  "Prasad & Food",
-  "Ritual Items",
-  "Special Offerings",
-];
+      {/* Content */}
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="font-bold text-gray-900 text-base mb-2 line-clamp-2 leading-snug">
+          {puja.title}
+        </h3>
 
-const TEMPLE_LIST = [
-  {
-    key: "kashi-vishwanath",
-    name: "Kashi Vishwanath",
-    location: "Varanasi, UP",
-  },
-  { key: "tirupati-balaji", name: "Tirupati Balaji", location: "Tirupati, AP" },
-  { key: "siddhivinayak", name: "Siddhivinayak", location: "Mumbai, MH" },
-  { key: "vaishno-devi", name: "Vaishno Devi", location: "Katra, J&K" },
-  { key: "somnath", name: "Somnath", location: "Gujarat" },
-  { key: "shirdi-sai", name: "Shirdi Sai Baba", location: "Shirdi, MH" },
-];
+        {/* Temple */}
+        <div className="flex items-start gap-1.5 mb-1.5">
+          <svg
+            className="w-3.5 h-3.5 text-orange-400 mt-0.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            />
+          </svg>
+          <p className="text-xs text-gray-500 line-clamp-1">{puja.temple}</p>
+        </div>
 
-export default function ChadhavaPage() {
-  const [category, setCategory] = useState("All");
-  const [selectedTemple, setSelectedTemple] = useState("All");
-  const [cart, setCart] = useState<number[]>([]);
-  const [infoItem, setInfoItem] = useState<ChadhavaItem | null>(null);
+        {/* Date */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <svg
+            className="w-3.5 h-3.5 text-orange-400 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <p className="text-xs text-gray-500 font-medium">{puja.date}</p>
+        </div>
 
-  const toggleCart = (id: number) =>
-    setCart((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
+        <p className="text-xs text-gray-600 mb-4 line-clamp-2 leading-relaxed flex-1">
+          {puja.description}
+        </p>
 
-  const filtered = CHADHAVA_ITEMS.filter((item) => {
-    if (category !== "All" && item.category !== category) return false;
-    if (
-      selectedTemple !== "All" &&
-      !item.temples.some(
-        (t) =>
-          t.toLowerCase().includes(selectedTemple.toLowerCase()) ||
-          t === "All Temples",
-      )
-    )
-      return false;
-    return true;
+        {/* Benefits */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {puja.benefits.slice(0, 2).map((b) => (
+            <span
+              key={b}
+              className="bg-orange-50 text-orange-700 text-xs px-2 py-0.5 rounded-full border border-orange-100"
+            >
+              ✓ {b}
+            </span>
+          ))}
+        </div>
+
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
+          <div>
+            <p className="text-xs text-gray-400 line-through">
+              {puja.originalPrice}
+            </p>
+            <p className="text-xl font-extrabold text-orange-600">
+              {puja.price}
+            </p>
+          </div>
+          <Link
+            href={`/poojas/${puja.id}`}
+            className="inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-orange-200"
+          >
+            PARTICIPATE
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page Banner ────────────────────────────────────────────────────────────────
+function PageBanner() {
+  return (
+    <section className="relative h-64 md:h-80 overflow-hidden">
+      <ImagePlaceholder
+        className="absolute inset-0 w-full h-full"
+        gradient="from-[#3d0a00] to-[#1a0500]"
+      />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500]/90 via-[#2d0a00]/70 to-transparent" />
+      <div className="relative z-10 h-full flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <span className="bg-orange-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+              Divine Blessings through Puja
+            </span>
+            <span className="bg-white/10 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+              Vedic Rituals by Expert Pandits
+            </span>
+            <span className="bg-white/10 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+              Video in 24–48 Hours
+            </span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            Mandirlok Special Pujas
+          </h1>
+          <p className="text-white/80 text-base max-w-xl leading-relaxed">
+            Get authentic Vedic pujas performed at India's most powerful temples
+            on your behalf. Receive blessings and puja video directly.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── How Puja Works Banner ──────────────────────────────────────────────────────
+function HowItWorksBanner() {
+  const steps = [
+    {
+      icon: "🛕",
+      title: "Choose Puja",
+      desc: "Select from 200+ authentic pujas across India's sacred temples",
+    },
+    {
+      icon: "✍️",
+      title: "Enter Your Name",
+      desc: "Panditji will chant your name in the Sankalp during the puja",
+    },
+    {
+      icon: "💳",
+      title: "Secure Payment",
+      desc: "Pay securely via UPI, card or net banking through Razorpay",
+    },
+    {
+      icon: "📹",
+      title: "Get Puja Video",
+      desc: "Receive the video proof of your completed puja within 24–48 hrs",
+    },
+  ];
+  return (
+    <div className="bg-gradient-to-br from-orange-50 to-amber-50 border-b border-orange-100 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {steps.map((s, i) => (
+            <div key={i} className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-xl shrink-0">
+                {s.icon}
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900 text-sm mb-0.5">
+                  {s.title}
+                </h4>
+                <p className="text-gray-500 text-xs leading-relaxed">
+                  {s.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Export ────────────────────────────────────────────────────────────────
+export default function PoojasPage() {
+  const [activeFilter, setActiveFilter] = useState("All Pujas");
+  const [sortBy, setSortBy] = useState("Most Popular");
+  const [search, setSearch] = useState("");
+
+  const filtered = POOJAS.filter((p) => {
+    const matchFilter =
+      activeFilter === "All Pujas" || p.deity === activeFilter;
+    const matchSearch =
+      !search ||
+      p.title.toLowerCase().includes(search.toLowerCase()) ||
+      p.temple.toLowerCase().includes(search.toLowerCase());
+    return matchFilter && matchSearch;
   });
 
-  const cartTotal = cart.reduce((sum, id) => {
-    const item = CHADHAVA_ITEMS.find((i) => i.id === id);
-    return sum + (item?.price ?? 0);
-  }, 0);
-
   return (
-    <>
-      <Navbar />
-      <main className="pt-16 min-h-screen bg-[#fdf6ee]">
-        {/* ── Hero ── */}
-        <div className="relative bg-gradient-to-br from-[#1a0a00] via-[#3d1500] to-[#8b0000] py-14 px-4 overflow-hidden">
-          <div className="absolute inset-0 opacity-10 text-[200px] flex items-center justify-end pr-8 select-none">
-            🙏
-          </div>
-          <div className="container-app relative z-10 text-center text-white">
-            <span className="inline-block bg-white/10 border border-white/20 text-[#ffd9a8] text-xs font-semibold px-4 py-1.5 rounded-full mb-4">
-              🌸 Sacred Temple Offerings
-            </span>
-            <h1 className="font-display font-bold text-3xl md:text-5xl text-white mb-3 leading-tight">
-              Chadhava &amp; Temple Offerings
-            </h1>
-            <p className="text-[#ffd9a8] max-w-xl mx-auto text-sm md:text-base mb-6">
-              Make authentic sacred offerings at India's most revered temples.
-              Our pandits present each chadhava with proper Vedic rituals and
-              devotion.
-            </p>
+    <main className="min-h-screen bg-gray-50 font-sans">
+      <PageBanner />
+      <HowItWorksBanner />
 
-            {/* ── Trust Row ── */}
-            <div className="flex flex-wrap justify-center gap-4 text-xs">
-              {[
-                "🌿 Fresh daily offerings",
-                "📹 Photo/video proof",
-                "🧘 Performed by pandits",
-                "📦 Prasad delivery available",
-              ].map((t) => (
-                <span
-                  key={t}
-                  className="bg-white/10 backdrop-blur border border-white/20 text-[#ffd9a8] px-3 py-1.5 rounded-full"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Temple Selector ── */}
-        <div className="bg-white border-b border-[#f0dcc8] py-4 sticky top-16 z-30">
-          <div className="container-app">
-            <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide">
-              <span className="text-xs font-semibold text-[#6b5b45] whitespace-nowrap flex-shrink-0">
-                Select Temple:
-              </span>
+      {/* Sticky Filter Bar */}
+      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-2 overflow-x-auto py-3 no-scrollbar">
+            {FILTERS.map((f) => (
               <button
-                onClick={() => setSelectedTemple("All")}
-                className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium border transition-all flex-shrink-0 ${
-                  selectedTemple === "All"
-                    ? "bg-[#ff7f0a] text-white border-[#ff7f0a]"
-                    : "bg-white text-[#6b5b45] border-[#f0dcc8] hover:border-[#ffbd6e]"
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  activeFilter === f
+                    ? "bg-orange-500 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                All Temples
+                {f}
               </button>
-              {TEMPLE_LIST.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setSelectedTemple(t.name)}
-                  className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium border transition-all flex-shrink-0 ${
-                    selectedTemple === t.name
-                      ? "bg-[#ff7f0a] text-white border-[#ff7f0a]"
-                      : "bg-white text-[#6b5b45] border-[#f0dcc8] hover:border-[#ffbd6e]"
-                  }`}
-                >
-                  {t.name}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        <div className="container-app py-8">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* ── LEFT: Offerings ── */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Category Filter */}
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setCategory(cat)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-                      category === cat
-                        ? "bg-[#ff7f0a] text-white border-[#ff7f0a] shadow-sm"
-                        : "bg-white text-[#6b5b45] border-[#f0dcc8] hover:border-[#ffbd6e]"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* Items Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {filtered.map((item) => {
-                  const inCart = cart.includes(item.id);
-                  return (
-                    <div
-                      key={item.id}
-                      className={`bg-white border rounded-2xl p-5 transition-all ${
-                        inCart
-                          ? "border-[#ff7f0a] shadow-[0_0_0_2px_rgba(255,127,10,0.1)]"
-                          : "border-[#f0dcc8] hover:border-[#ffbd6e] hover:shadow-sm"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="text-4xl flex-shrink-0">
-                          {item.emoji}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-display font-semibold text-[#1a1209] text-sm">
-                              {item.name}
-                            </h3>
-                            {item.popular && (
-                              <span className="bg-[#fff8f0] text-[#ff7f0a] border border-[#ffd9a8] text-[9px] font-bold px-2 py-0.5 rounded-full">
-                                POPULAR
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-[#6b5b45] font-devanagari">
-                            {item.hindiName}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setInfoItem(item === infoItem ? null : item)
-                          }
-                          className="text-[#b89b7a] hover:text-[#ff7f0a] transition-colors flex-shrink-0"
-                        >
-                          <Info size={14} />
-                        </button>
-                      </div>
-
-                      <p className="text-xs text-[#6b5b45] mb-3 leading-relaxed">
-                        {item.description}
-                      </p>
-
-                      {/* Temples */}
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {item.temples.slice(0, 2).map((t) => (
-                          <span
-                            key={t}
-                            className="text-[10px] bg-[#fff8f0] text-[#ff7f0a] border border-[#ffd9a8] px-2 py-0.5 rounded-full"
-                          >
-                            🛕 {t}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Info Expand */}
-                      {infoItem?.id === item.id && (
-                        <div className="bg-[#fff8f0] border border-[#ffd9a8] rounded-xl p-3 mb-3 text-xs text-[#6b5b45] leading-relaxed">
-                          <strong className="text-[#ff7f0a] block mb-1">
-                            Significance:
-                          </strong>
-                          {item.significance}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-[#ff7f0a]">
-                          ₹{item.price}
-                        </span>
-                        <button
-                          onClick={() => toggleCart(item.id)}
-                          className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition-all ${
-                            inCart
-                              ? "bg-[#ff7f0a] text-white shadow-sm"
-                              : "border border-[#ff7f0a] text-[#ff7f0a] hover:bg-[#fff8f0]"
-                          }`}
-                        >
-                          {inCart ? <Check size={13} /> : <Plus size={13} />}
-                          {inCart ? "Added" : "Add to Offering"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {filtered.length === 0 && (
-                <div className="text-center py-16">
-                  <div className="text-5xl mb-3">🌸</div>
-                  <p className="font-display font-semibold text-[#1a1209]">
-                    No offerings found for this selection
-                  </p>
-                  <p className="text-sm text-[#6b5b45] mt-1">
-                    Try selecting a different temple or category
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* ── RIGHT: Cart & Temple Info ── */}
-            <div className="space-y-5">
-              {/* Cart Summary */}
-              <div className="bg-white border border-[#f0dcc8] rounded-2xl p-5 shadow-card sticky top-36">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-display font-semibold text-[#1a1209]">
-                    Your Offerings
-                  </h3>
-                  <span className="bg-[#ff7f0a] text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                    {cart.length}
-                  </span>
-                </div>
-
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-[#b89b7a]">
-                    <div className="text-4xl mb-2">🙏</div>
-                    <p className="text-sm">No offerings selected yet</p>
-                    <p className="text-xs mt-1">
-                      Add items from the left panel
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-2 mb-4 max-h-52 overflow-y-auto">
-                      {cart.map((id) => {
-                        const item = CHADHAVA_ITEMS.find((i) => i.id === id)!;
-                        return (
-                          <div key={id} className="flex items-center gap-2">
-                            <span className="text-xl">{item.emoji}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-[#1a1209] truncate">
-                                {item.name}
-                              </p>
-                            </div>
-                            <span className="text-xs font-bold text-[#ff7f0a]">
-                              ₹{item.price}
-                            </span>
-                            <button
-                              onClick={() => toggleCart(id)}
-                              className="text-[#b89b7a] hover:text-red-500 transition-colors ml-1"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="border-t border-[#f0dcc8] pt-3 mb-4">
-                      <div className="flex justify-between font-bold">
-                        <span className="text-[#1a1209]">Total</span>
-                        <span className="text-[#ff7f0a] text-lg">
-                          ₹{cartTotal}
-                        </span>
-                      </div>
-                    </div>
-                    <Link
-                      href="/cart?type=chadhava"
-                      className="w-full block text-center bg-gradient-to-r from-[#ff7f0a] to-[#ff9b30] text-white font-semibold text-sm py-3 rounded-xl shadow-[0_4px_15px_rgba(255,127,10,0.3)] hover:shadow-[0_6px_25px_rgba(255,127,10,0.45)] transition-all"
-                    >
-                      🌸 Proceed to Book Offering
-                    </Link>
-                    <p className="text-center text-[10px] text-[#6b5b45] mt-2">
-                      📹 Photo/video proof sent on WhatsApp
-                    </p>
-                  </>
-                )}
-              </div>
-
-              {/* Why Chadhava */}
-              <div className="bg-[#fff8f0] border border-[#ffd9a8] rounded-2xl p-5">
-                <h4 className="font-display font-semibold text-[#1a1209] mb-3 text-sm">
-                  Why Offer Chadhava?
-                </h4>
-                <div className="space-y-2.5 text-xs text-[#6b5b45]">
-                  {[
-                    "🙏 Direct connection with the divine",
-                    "✨ Fulfillment of your prayers and wishes",
-                    "🌿 Fresh offerings prepared daily",
-                    "📹 Proof sent on WhatsApp",
-                    "🧘 Performed with Vedic mantras",
-                    "📦 Prasad shipped to your home",
-                  ].map((t) => (
-                    <p key={t}>{t}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search + Sort */}
+        <div className="flex flex-wrap gap-4 items-center mb-8">
+          <div className="relative flex-1 min-w-[200px]">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search pujas, temples, deities..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+            />
           </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white text-gray-700"
+          >
+            {SORT_OPTIONS.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+          <span className="text-sm text-gray-400 ml-auto">
+            {filtered.length} pujas found
+          </span>
         </div>
 
-        {/* ── Temple Photo Gallery ── */}
-        <section className="section-py bg-white">
-          <div className="container-app">
-            <div className="text-center mb-8">
-              <span className="badge-saffron mb-2 inline-block">
-                Temples We Serve
-              </span>
-              <h2 className="heading-lg text-[#1a1209]">
-                Make Offerings at Sacred Temples
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {TEMPLE_LIST.map((t) => (
-                <Link
-                  key={t.key}
-                  href="/temples"
-                  className="group relative h-48 rounded-2xl overflow-hidden block"
-                >
-                  <TempleImage
-                    templeKey={t.key}
-                    className="w-full h-full"
-                    showOverlay
-                    overlayOpacity={0.4}
-                  />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                    <p className="text-white font-display font-semibold text-sm group-hover:text-[#ffd9a8] transition-colors">
-                      {t.name}
-                    </p>
-                    <p className="text-white/70 text-xs">{t.location}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+        {/* Puja Grid */}
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((puja) => (
+              <PujaCard key={puja.id} puja={puja} />
+            ))}
           </div>
-        </section>
-      </main>
-      <Footer />
-    </>
+        ) : (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🙏</div>
+            <h3 className="text-xl font-bold text-gray-700 mb-2">
+              No pujas found
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Try a different filter or search keyword
+            </p>
+            <button
+              onClick={() => {
+                setSearch("");
+                setActiveFilter("All Pujas");
+              }}
+              className="bg-orange-500 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+
+        {/* View More */}
+        {filtered.length > 0 && (
+          <div className="text-center mt-12">
+            <button className="inline-flex items-center gap-2 border-2 border-orange-500 text-orange-600 hover:bg-orange-500 hover:text-white font-bold px-8 py-3 rounded-full transition-all duration-200">
+              Load More Pujas
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
