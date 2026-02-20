@@ -396,7 +396,7 @@ export default function AboutPage() {
                 href="/poojas"
                 className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-8 py-3.5 rounded-full transition-all duration-200 shadow-lg hover:shadow-orange-500/30 hover:scale-105"
               >
-                Participate in a Puja
+                Book a Puja
                 <svg
                   className="w-4 h-4"
                   fill="none"
