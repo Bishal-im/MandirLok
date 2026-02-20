@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Pooja from "@/models/Pooja";
-import Temple from "@/models/Temple"; // ← Required so Mongoose registers the Temple schema before populate()
 
 export async function GET(req: Request) {
   try {

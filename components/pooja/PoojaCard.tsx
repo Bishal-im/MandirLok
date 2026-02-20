@@ -30,10 +30,9 @@ export default function PoojaCard({
   pooja,
   variant = "default",
 }: PoojaCardProps) {
-  // Discount calculation removed as it's no longer needed
-  // const discount = Math.round(
-  //   ((pooja.originalPrice - pooja.price) / pooja.originalPrice) * 100,
-  // );
+  const discount = Math.round(
+    ((pooja.originalPrice - pooja.price) / pooja.originalPrice) * 100,
+  );
 
   if (variant === "compact") {
     return (
@@ -52,10 +51,9 @@ export default function PoojaCard({
             {pooja.duration} · {pooja.benefit}
           </p>
         </div>
-        {/* Price tag removed */}
-        {/* <span className="text-sm font-bold text-[#ff7f0a] flex-shrink-0">
+        <span className="text-sm font-bold text-[#ff7f0a] flex-shrink-0">
           ₹{pooja.price.toLocaleString()}
-        </span> */}
+        </span>
       </Link>
     );
   }
@@ -94,8 +92,7 @@ export default function PoojaCard({
         </div>
 
         <div className="text-right flex-shrink-0">
-          {/* Price and discount section completely removed */}
-          {/* <div className="flex items-baseline gap-1.5 justify-end">
+          <div className="flex items-baseline gap-1.5 justify-end">
             <span className="text-lg font-bold text-[#ff7f0a]">
               ₹{pooja.price.toLocaleString()}
             </span>
@@ -105,10 +102,10 @@ export default function PoojaCard({
           </div>
           <span className="text-[10px] text-green-600 font-medium">
             {discount}% off
-          </span> */}
+          </span>
           <div className="mt-2">
             <span className="inline-block bg-gradient-to-r from-[#ff7f0a] to-[#ff9b30] text-white text-xs font-semibold px-3 py-1 rounded-full">
-              Participate Puja
+              Book Now
             </span>
           </div>
         </div>
@@ -161,8 +158,7 @@ export default function PoojaCard({
       </div>
 
       <div className="flex items-center justify-between pt-3 border-t border-[#f0dcc8]">
-        {/* Price section completely removed */}
-        {/* <div>
+        <div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-lg font-bold text-[#ff7f0a]">
               ₹{pooja.price.toLocaleString()}
@@ -174,10 +170,9 @@ export default function PoojaCard({
           <span className="text-[10px] text-green-600 font-medium">
             {discount}% savings
           </span>
-        </div> */}
-        <div></div> {/* Empty div for spacing */}
+        </div>
         <button className="bg-gradient-to-r from-[#ff7f0a] to-[#ff9b30] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-sm hover:shadow-[0_4px_15px_rgba(255,127,10,0.4)] transition-all">
-          Participate Puja
+          Book Now
         </button>
       </div>
     </Link>
