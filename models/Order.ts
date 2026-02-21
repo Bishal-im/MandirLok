@@ -35,6 +35,7 @@ export interface IOrder extends Document {
   whatsapp: string;
   sankalp?: string;          // wish / special message
   address?: string;          // for prasad delivery
+  qty: number;               // number of devotees
 
   // Selected chadhava items
   chadhavaItems: IOrderChadhava[];
@@ -87,6 +88,7 @@ const OrderSchema = new Schema<IOrder>(
     whatsapp: { type: String, required: true },
     sankalp: { type: String, default: "" },
     address: { type: String, default: "" },
+    qty: { type: Number, default: 1 },
 
     chadhavaItems: [OrderChadhavaSchema],
 
