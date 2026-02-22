@@ -7,7 +7,8 @@ import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
   try {
-    const { email, otp } = await req.json();
+    const { email: rawEmail, otp } = await req.json();
+    const email = rawEmail?.toLowerCase().trim();
 
     if (!email || !otp) {
       return NextResponse.json(
@@ -49,14 +50,23 @@ export async function POST(req: Request) {
     await Otp.deleteMany({ email });
 
     // 5️⃣ Find or create user
+    const adminEmails = process.env.ADMIN_EMAILS?.toLowerCase().split(",").map(e => e.trim()) || [];
+    const isTargetAdmin = adminEmails.includes(email);
+    console.log(`[AUTH] Verifying OTP for ${email}. isTargetAdmin: ${isTargetAdmin}. Admin list matches: ${adminEmails}`);
+
     let user = await User.findOne({ email });
     if (!user) {
       user = await User.create({
         email,
+        role: isTargetAdmin ? "admin" : "user",
         lastLogin: new Date(),
       });
     } else {
       user.lastLogin = new Date();
+      // Always sync role if user is in ADMIN_EMAILS
+      if (isTargetAdmin) {
+        user.role = "admin";
+      }
       await user.save();
     }
 
@@ -77,6 +87,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: "Login successful",
+      role: user.role,
       hasName, // This tells frontend whether to show name input step
     });
   } catch (error) {
