@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronLeft, Save, IndianRupee, Info } from "lucide-react";
+import { ChevronLeft, Save, IndianRupee, Info, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { getChadhavaById, updateChadhava, getTemplesAdmin } from "@/lib/actions/admin";
 
@@ -18,6 +18,7 @@ export default function EditChadhavaPage() {
         name: "",
         templeId: "",
         emoji: "🌸",
+        image: "",
         price: 0,
         description: "",
         isActive: true,
@@ -94,6 +95,11 @@ export default function EditChadhavaPage() {
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-500 uppercase">Item Name</label>
                         <input required name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none" />
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><ImageIcon size={12} /> Image URL</label>
+                        <input name="image" value={formData.image} onChange={handleChange} placeholder="https://..." className="w-full px-4 py-3 rounded-xl border border-gray-200" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

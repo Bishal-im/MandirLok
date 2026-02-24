@@ -1,8 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import jwt from "jsonwebtoken";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
+import { verifyToken } from "@/lib/jwt";
 import AdminSidebar from "./AdminSidebar";
 
 export default async function AdminLayout({
@@ -10,31 +8,16 @@ export default async function AdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    // --- Admin Auth Guard ---
     const token = cookies().get("mandirlok_token")?.value;
-    
-    // Check if we are already on the login page to avoid infinite redirect
-    // Note: In Next.js App Router, layout doesn't easily get the pathname in Server Components
-    // However, we can use a simpler approach or a middleware.
-    // Since we want a robust fix, we'll check the token and role.
-    
+
     if (!token) {
-        // We can't easily check pathname here without headers, but typically
-        // we redirect to a dedicated login if unauthorized.
         redirect("/admin/login");
     }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
-        await connectDB();
-        const user = await User.findById(decoded.userId);
-        if (!user || !user.isActive || user.role !== "admin") {
-            redirect("/admin/login");
-        }
-    } catch {
+    const decoded = verifyToken(token);
+    if (!decoded || decoded.role !== "admin") {
         redirect("/admin/login");
     }
-    // --- End Auth Guard ---
 
     return (
         <div className="min-h-screen bg-gray-50 flex">

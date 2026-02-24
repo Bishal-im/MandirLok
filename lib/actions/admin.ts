@@ -8,6 +8,7 @@ import Chadhava from "../../models/Chadhava";
 import Pandit from "../../models/Pandit";
 import Order from "../../models/Order";
 import User from "../../models/User";
+import Settings from "../../models/Settings";
 
 // =======================
 // DASHBOARD STATS
@@ -104,6 +105,10 @@ export async function createPooja(data: any) {
     try {
         await connectDB();
         const pooja = await Pooja.create(data);
+        // Sync Temple pujasAvailable count
+        if (data.templeId) {
+            await Temple.findByIdAndUpdate(data.templeId, { $inc: { pujasAvailable: 1 } });
+        }
         revalidatePath("/admin/poojas");
         return { success: true, pooja: JSON.parse(JSON.stringify(pooja)) };
     } catch (error: any) {
@@ -126,7 +131,12 @@ export async function updatePooja(id: string, data: any) {
 export async function deletePooja(id: string) {
     try {
         await connectDB();
-        await Pooja.findByIdAndDelete(id);
+        const pooja = await Pooja.findById(id);
+        if (pooja) {
+            await Pooja.findByIdAndDelete(id);
+            // Sync Temple pujasAvailable count
+            await Temple.findByIdAndUpdate(pooja.templeId, { $inc: { pujasAvailable: -1 } });
+        }
         revalidatePath("/admin/poojas");
         revalidatePath("/poojas");
         return { success: true };
@@ -300,6 +310,30 @@ export async function updateOrderVideo(orderId: string, videoUrl: string) {
         );
         revalidatePath("/admin/orders");
         return { success: true, order: JSON.parse(JSON.stringify(order)) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+// =======================
+// SETTINGS MANAGEMENT
+// =======================
+export async function getSettings(key: string) {
+    await connectDB();
+    const setting = await Settings.findOne({ key }).lean();
+    return setting ? JSON.parse(JSON.stringify(setting)) : null;
+}
+
+export async function updateSettings(key: string, value: any, description?: string) {
+    try {
+        await connectDB();
+        const setting = await Settings.findOneAndUpdate(
+            { key },
+            { value, description },
+            { new: true, upsert: true }
+        );
+        revalidatePath("/"); // Revalidate landing page
+        return { success: true, setting: JSON.parse(JSON.stringify(setting)) };
     } catch (error: any) {
         return { success: false, error: error.message };
     }

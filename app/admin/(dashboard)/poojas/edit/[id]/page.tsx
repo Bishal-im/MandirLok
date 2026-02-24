@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronLeft, Save, Info, Plus, X, IndianRupee, Clock, Tag } from "lucide-react";
+import { ChevronLeft, Save, Info, Plus, X, IndianRupee, Clock, Tag, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
-import { getPoojaById, updatePooja, getTemplesAdmin } from "../../../../../../lib/actions/admin";
+import { getPoojaById, updatePooja, getTemplesAdmin } from "@/lib/actions/admin";
 
 export default function EditPoojaPage() {
     const { id } = useParams() as { id: string };
@@ -98,13 +98,7 @@ export default function EditPoojaPage() {
         setError("");
 
         try {
-            // Include any pending items
-            let finalData = { ...formData };
-            if (newBenefit && !finalData.benefits.includes(newBenefit)) finalData.benefits.push(newBenefit);
-            if (newInclude && !finalData.includes.includes(newInclude)) finalData.includes.push(newInclude);
-            if (newImageUrl && !finalData.images.includes(newImageUrl)) finalData.images.push(newImageUrl);
-
-            const res = await updatePooja(id, finalData);
+            const res = await updatePooja(id, formData);
             if (res.success) {
                 router.push("/admin/poojas");
             } else {
@@ -164,6 +158,38 @@ export default function EditPoojaPage() {
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Clock size={12} /> Duration</label>
                         <input required name="duration" value={formData.duration} onChange={handleChange} className="w-full px-4 py-2.5 rounded-xl border border-gray-200" />
+                    </div>
+                </div>
+
+                {/* Media Section */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-6">
+                    <div className="space-y-3">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1"><ImageIcon size={14} /> Pooja Images (URLs)</label>
+                        <div className="flex gap-2">
+                            <input value={newImageUrl} onChange={e => setNewImageUrl(e.target.value)} placeholder="Paste image URL here" className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                            <button type="button" onClick={() => addArrayItem("images")} className="bg-gray-100 p-2.5 rounded-xl hover:bg-[#ff7f0a] hover:text-white transition-all"><Plus size={20} /></button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {formData.images.map(img => (
+                                <div key={img} className="relative aspect-video rounded-xl overflow-hidden border border-gray-100 group">
+                                    <img src={img} alt="preview" className="w-full h-full object-cover" />
+                                    <button type="button" onClick={() => removeArrayItem("images", img)} className="absolute top-1 right-1 p-1 bg-black/50 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Emoji Icon</label>
+                            <input name="emoji" value={formData.emoji} onChange={handleChange} className="w-full px-4 py-2.5 rounded-xl border border-gray-200" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Badge Tag</label>
+                            <input name="tag" value={formData.tag} onChange={handleChange} placeholder="e.g. Best Seller" className="w-full px-4 py-2.5 rounded-xl border border-gray-200" />
+                        </div>
                     </div>
                 </div>
 

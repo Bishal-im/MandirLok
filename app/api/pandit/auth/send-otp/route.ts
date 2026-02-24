@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     if (!pandit) {
       return NextResponse.json(
-        { success: false, message: `No active pandit found with this ${phone ? 'phone number' : 'email'}` },
+        { success: false, message: `No active pandit found with this ${phone ? "phone number" : "email"}` },
         { status: 404 }
       );
     }
@@ -33,46 +33,44 @@ export async function POST(req: Request) {
     const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Identifier for OTP storage
-    const identifier = phone ? `pandit:${phone}` : `pandit:${email}`;
+    // Delete old OTPs
+    if (phone) await Otp.deleteMany({ phone });
+    if (email) await Otp.deleteMany({ email });
 
-    // Delete old OTPs for this identifier
-    await Otp.deleteMany({ email: identifier });
-
-    // Save new OTP
+    // Save new OTP using correct field
     await Otp.create({
-      email: identifier,
+      phone: phone || "",
+      email: email || "",
       otp,
       expiresAt,
     });
 
-    console.log(`[Pandit OTP] ${phone ? 'Phone: ' + phone : 'Email: ' + email} | OTP: ${otp}`);
+    console.log(`[Pandit OTP] ${phone ? "Phone: " + phone : "Email: " + email} | OTP: ${otp}`);
 
     if (email) {
-      // Send via Email (Gmail)
       try {
         const transporter = nodemailer.createTransport({
-          service: "gmail",
+          host: process.env.SMTP_HOST || "smtp.gmail.com",
+          port: Number(process.env.SMTP_PORT || 587),
           auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
+            user: process.env.SMTP_USER || process.env.EMAIL_USER,
+            pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
           },
         });
 
         await transporter.sendMail({
-          from: `"MandirLok Pandit Portal" <${process.env.EMAIL_USER}>`,
+          from: `"MandirLok Pandit Portal" <${process.env.SMTP_USER || process.env.EMAIL_USER}>`,
           to: email,
-          subject: "Your Portal Login OTP",
+          subject: "Your Pandit Portal OTP",
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #f0dcc8; border-radius: 10px; background-color: #fdf6ee;">
               <h2 style="color: #ff7f0a; text-align: center;">MandirLok Pandit Portal</h2>
               <p>🙏 Namaste <strong>${pandit.name}</strong>ji,</p>
               <p>Your 6-digit OTP for logging into the MandirLok Pandit Portal is:</p>
-              <div style="font-size: 32px; font-bold; text-align: center; padding: 20px; color: #1a1209; background-color: #fff8f0; border: 2px dashed #ff7f0a; border-radius: 8px; margin: 20px 0;">
+              <div style="font-size: 32px; font-weight: bold; text-align: center; padding: 20px; color: #1a1209; background-color: #fff8f0; border: 2px dashed #ff7f0a; border-radius: 8px; margin: 20px 0;">
                 ${otp}
               </div>
               <p style="color: #6b5b45; font-size: 14px;">This OTP will expire in 10 minutes. Please do not share this with anyone.</p>
-              <hr style="border: none; border-top: 1px solid #f0cc8; margin: 20px 0;" />
               <p style="text-align: center; color: #ff7f0a; font-weight: bold;">Jai Shree Ram 🛕</p>
             </div>
           `,
@@ -82,7 +80,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: false, message: "Failed to send Email OTP" }, { status: 500 });
       }
     } else if (phone) {
-      // Try to send WhatsApp if Twilio is configured
       if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
         try {
           const { sendWhatsApp } = await import("@/lib/whatsapp");
@@ -96,7 +93,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, message: `OTP sent to your registered ${email ? 'Email' : 'WhatsApp'}` });
+    return NextResponse.json({ success: true, message: `OTP sent to your registered ${email ? "Email" : "WhatsApp"}` });
   } catch (error) {
     console.error("Pandit send-otp error:", error);
     return NextResponse.json(
@@ -105,4 +102,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

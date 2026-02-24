@@ -26,7 +26,6 @@ const navItems = [
     { label: "Chadhava", href: "/admin/chadhava", icon: <Flower size={18} /> },
     { label: "Pandits", href: "/admin/pandits", icon: <Users size={18} /> },
     { label: "Payments", href: "/admin/payments", icon: <IndianRupee size={18} /> },
-    { label: "Analytics", href: "/admin/analytics", icon: <BarChart3 size={18} /> },
     { label: "Settings", href: "/admin/settings", icon: <Settings size={18} /> },
 ];
 

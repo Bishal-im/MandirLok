@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
+import { verifyToken } from "@/lib/jwt";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
-
-const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function GET() {
     try {
         const cookieStore = cookies();
         const token = cookieStore.get("mandirlok_token")?.value;
-        console.log(`[AUTH/ME] Token present: ${!!token}`);
 
         if (!token) {
             return NextResponse.json(
@@ -19,15 +16,10 @@ export async function GET() {
             );
         }
 
-        // Verify token
-        let decoded: any;
-        try {
-            decoded = jwt.verify(token, JWT_SECRET);
-            console.log(`[AUTH/ME] Token decoded successfully: ${decoded.userId}`);
-        } catch (err: any) {
-            console.error(`[AUTH/ME] Token verify failed: ${err.message}`);
+        const decoded = verifyToken(token);
+        if (!decoded) {
             return NextResponse.json(
-                { success: false, message: "Invalid token: " + err.message },
+                { success: false, message: "Invalid token" },
                 { status: 401 }
             );
         }

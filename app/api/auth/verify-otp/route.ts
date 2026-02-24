@@ -52,7 +52,6 @@ export async function POST(req: Request) {
     // 5️⃣ Find or create user
     const adminEmails = process.env.ADMIN_EMAILS?.toLowerCase().split(",").map(e => e.trim()) || [];
     const isTargetAdmin = adminEmails.includes(email);
-    console.log(`[AUTH] Verifying OTP for ${email}. isTargetAdmin: ${isTargetAdmin}. Admin list matches: ${adminEmails}`);
 
     let user = await User.findOne({ email });
     if (!user) {
@@ -63,15 +62,14 @@ export async function POST(req: Request) {
       });
     } else {
       user.lastLogin = new Date();
-      // Always sync role if user is in ADMIN_EMAILS
       if (isTargetAdmin) {
         user.role = "admin";
       }
       await user.save();
     }
 
-    // 6️⃣ Generate JWT
-    const token = generateToken(user._id.toString());
+    // 6️⃣ Generate JWT with userId AND role
+    const token = generateToken({ userId: user._id.toString(), role: user.role });
 
     // 7️⃣ Set cookie
     cookies().set("mandirlok_token", token, {
@@ -81,14 +79,14 @@ export async function POST(req: Request) {
       path: "/",
     });
 
-    // 8️⃣ Check if user has name (FIX: added this check)
+    // 8️⃣ Check if user has name
     const hasName = typeof user.name === "string" && user.name.trim().length > 0;
 
     return NextResponse.json({
       success: true,
       message: "Login successful",
       role: user.role,
-      hasName, // This tells frontend whether to show name input step
+      hasName,
     });
   } catch (error) {
     console.error("verify-otp error:", error);
