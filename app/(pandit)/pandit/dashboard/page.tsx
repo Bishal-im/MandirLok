@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import PanditSidebar from '@/components/pandit/PanditSidebar'
 import VideoUploadModal from '@/components/pandit/VideoUploadModal'
-import { 
-  Calendar, CheckCircle, Clock, IndianRupee, 
-  ChevronRight, Phone, ExternalLink, Play 
+import {
+  Calendar, CheckCircle, Clock, IndianRupee,
+  ChevronRight, Phone, ExternalLink, Play
 } from 'lucide-react'
 import { formatINR } from '@/lib/utils'
 
@@ -43,12 +43,12 @@ export default function PanditDashboard() {
   }
 
   const today = new Date().toISOString().split('T')[0]
-  const todayPoojas = orders.filter(o => 
+  const todayPoojas = orders.filter(o =>
     new Date(o.bookingDate).toISOString().split('T')[0] === today &&
     (o.orderStatus === 'confirmed' || o.orderStatus === 'in-progress')
   )
 
-  const upcomingPoojas = orders.filter(o => 
+  const upcomingPoojas = orders.filter(o =>
     new Date(o.bookingDate).toISOString().split('T')[0] > today &&
     o.orderStatus === 'confirmed'
   ).slice(0, 5)
@@ -81,7 +81,7 @@ export default function PanditDashboard() {
             <p className="text-xs text-[#6b5b45]">Welcome back, Pt. {pandit?.name}</p>
           </div>
           <div className="hidden sm:flex items-center gap-2">
-             <span className="badge-saffron">🧘 Online Now</span>
+            <span className="badge-saffron">🧘 Online Now</span>
           </div>
         </header>
 
@@ -117,18 +117,17 @@ export default function PanditDashboard() {
                       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-[#fff8f0] rounded-2xl flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                            {order.poojaId.emoji || '🙏'}
+                            {order.poojaId?.emoji || '🙏'}
                           </div>
                           <div>
-                            <h3 className="font-display font-bold text-gray-900">{order.poojaId.name}</h3>
-                            <p className="text-xs text-[#6b5b45]">🛕 {order.templeId.name}</p>
+                            <h3 className="font-display font-bold text-gray-900">{order.poojaId?.name || 'Pooja'}</h3>
+                            <p className="text-xs text-[#6b5b45]">🛕 {order.templeId?.name || 'Temple'}</p>
                           </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                          order.orderStatus === 'in-progress' 
-                            ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${order.orderStatus === 'in-progress'
+                            ? 'bg-blue-50 text-blue-600 border-blue-100'
                             : 'bg-orange-50 text-orange-600 border-orange-100'
-                        }`}>
+                          }`}>
                           {order.orderStatus === 'in-progress' ? 'In Progress' : 'Confirmed'}
                         </div>
                       </div>
@@ -146,14 +145,14 @@ export default function PanditDashboard() {
 
                       <div className="flex gap-2">
                         {order.orderStatus === 'confirmed' ? (
-                          <button 
+                          <button
                             onClick={() => startPooja(order._id)}
                             className="flex-1 btn-saffron py-2.5 text-xs flex items-center justify-center gap-2"
                           >
                             <Play size={14} /> Start Pooja 🙏
                           </button>
                         ) : (
-                          <button 
+                          <button
                             onClick={() => setSelectedOrder(order)}
                             className="flex-1 bg-blue-600 text-white font-bold rounded-xl py-2.5 text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
                           >
@@ -161,7 +160,7 @@ export default function PanditDashboard() {
                           </button>
 
                         )}
-                        <Link 
+                        <Link
                           href={`/pandit/orders/${order._id}`}
                           className="px-4 py-2.5 border border-[#f0dcc8] rounded-xl text-xs font-semibold text-[#6b5b45] hover:bg-white hover:text-[#ff7f0a] transition-colors"
                         >
@@ -190,16 +189,16 @@ export default function PanditDashboard() {
               <div className="space-y-3">
                 {upcomingPoojas.length > 0 ? (
                   upcomingPoojas.map((order) => (
-                    <Link 
-                      key={order._id} 
+                    <Link
+                      key={order._id}
                       href={`/pandit/orders/${order._id}`}
                       className="bg-white border border-[#f0dcc8] rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3 group"
                     >
                       <div className="w-10 h-10 bg-[#fff8f0] rounded-lg flex items-center justify-center text-lg">
-                        {order.poojaId.emoji || '🙏'}
+                        {order.poojaId?.emoji || '🙏'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-xs text-gray-900 truncate">{order.poojaId.name}</h4>
+                        <h4 className="font-bold text-xs text-gray-900 truncate">{order.poojaId?.name || 'Pooja'}</h4>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] text-[#ff7f0a] font-bold">
                             {new Date(order.bookingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
@@ -215,10 +214,10 @@ export default function PanditDashboard() {
                     No upcoming poojas found.
                   </div>
                 )}
-                
+
                 {orders.length > 0 && (
-                  <Link 
-                    href="/pandit/orders?tab=upcoming" 
+                  <Link
+                    href="/pandit/orders?tab=upcoming"
                     className="block w-full text-center py-3 bg-white border border-[#f0dcc8] rounded-xl text-xs font-bold text-[#ff7f0a] hover:bg-[#fff8f0] transition-colors"
                   >
                     View Full Schedule
@@ -231,15 +230,15 @@ export default function PanditDashboard() {
       </div>
 
       {selectedOrder && (
-        <VideoUploadModal 
-          orderId={selectedOrder._id} 
+        <VideoUploadModal
+          orderId={selectedOrder._id}
           devoteeName={selectedOrder.sankalpName}
-          poojaName={selectedOrder.poojaId.name}
+          poojaName={selectedOrder.poojaId?.name || 'Pooja'}
           onSuccess={() => {
             setSelectedOrder(null)
             fetchData()
-          }} 
-          onClose={() => setSelectedOrder(null)} 
+          }}
+          onClose={() => setSelectedOrder(null)}
         />
       )}
 

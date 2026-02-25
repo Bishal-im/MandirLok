@@ -10,26 +10,36 @@ const fromPhoneNumber = process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+141552388
  * @param message - The text content of the message
  */
 export async function sendWhatsApp(to: string, message: string) {
-  // Ensure 'to' starts with whatsapp: prefix if not already present
-  const formattedTo = to.startsWith("whatsapp:") ? to : `whatsapp:+${to.replace(/^\+/, '')}`;
+  const cleanFrom = fromPhoneNumber.trim();
+  const cleanTo = to.trim();
+
+  // Ensure 'to' starts with whatsapp: prefix and has +
+  const formattedTo = cleanTo.startsWith("whatsapp:") ? cleanTo : `whatsapp:+${cleanTo.replace(/^\+/, '')}`;
+
+  // Ensure 'from' starts with whatsapp: prefix and has +
+  const formattedFrom = cleanFrom.startsWith("whatsapp:")
+    ? cleanFrom
+    : `whatsapp:${cleanFrom.startsWith('+') ? '' : '+'}${cleanFrom}`;
+
+  console.log(`[WhatsApp] Attempting send: From=${formattedFrom} To=${formattedTo}`);
 
   if (!accountSid || !authToken) {
     console.warn("[WhatsApp] Twilio credentials missing. Logging message below:");
-    console.log(`To: ${formattedTo}\nMessage: ${message}`);
+    console.log(`Message: ${message}`);
     return { success: true, mocked: true };
   }
 
   try {
     const client = twilio(accountSid, authToken);
     const result = await client.messages.create({
-      from: fromPhoneNumber,
+      from: formattedFrom,
       to: formattedTo,
       body: message,
     });
-    console.log(`[WhatsApp] Message sent: ${result.sid}`);
+    console.log(`[WhatsApp] Message successfully sent: ${result.sid}`);
     return { success: true, sid: result.sid };
   } catch (error) {
-    console.error("[WhatsApp] Failed to send message:", error);
+    console.error("[WhatsApp] Twilio API Error:", error);
     throw error;
   }
 }

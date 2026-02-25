@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Order from "@/models/Order";
 import { getPanditFromRequest } from "@/lib/panditAuth";
+import { sendWhatsApp } from "@/lib/whatsapp";
 
 export async function POST(
   req: Request,
@@ -29,6 +30,20 @@ export async function POST(
 
     order.orderStatus = "in-progress";
     await order.save();
+
+    // Send WhatsApp notification
+    try {
+      // Re-fetch or populate to get pooja name
+      const orderWithPooja = await Order.findById(order._id).populate("poojaId", "name");
+      if (orderWithPooja) {
+        await sendWhatsApp(
+          orderWithPooja.whatsapp,
+          `🙏 *Jai Shri Ram!*\n\n*Update:* Your pooja has started.\n\n📿 *Pooja:* ${(orderWithPooja.poojaId as any)?.name}\n📋 *Booking ID:* ${orderWithPooja.bookingId}\n\nYou can expect the video completion update shortly.\n\n🛕 *Mandirlok — Divine Blessings Delivered*`
+        );
+      }
+    } catch (e) {
+      console.error("[WhatsApp pooja started notification failed]", e);
+    }
 
     return NextResponse.json({ success: true, message: "Pooja started" });
   } catch (error: any) {

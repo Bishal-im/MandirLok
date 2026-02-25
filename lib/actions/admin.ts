@@ -9,6 +9,7 @@ import Pandit from "../../models/Pandit";
 import Order from "../../models/Order";
 import User from "../../models/User";
 import Settings from "../../models/Settings";
+import { sendWhatsApp } from "../whatsapp";
 
 // =======================
 // DASHBOARD STATS
@@ -276,7 +277,7 @@ export async function getOrderById(id: string) {
 export async function updateOrderStatus(id: string, status: string) {
     try {
         await connectDB();
-        const order = await Order.findByIdAndUpdate(id, { orderStatus: status }, { new: true });
+        const order = await Order.findByIdAndUpdate(id, { orderStatus: status }, { returnDocument: 'after' });
         revalidatePath("/admin/orders");
         revalidatePath("/admin");
         return { success: true, order: JSON.parse(JSON.stringify(order)) };
@@ -291,8 +292,20 @@ export async function assignPanditToOrder(orderId: string, panditId: string) {
         const order = await Order.findByIdAndUpdate(
             orderId,
             { panditId, orderStatus: "confirmed" },
-            { new: true }
-        );
+            { returnDocument: 'after' }
+        ).populate("panditId", "name").populate("poojaId", "name");
+
+        if (order) {
+            try {
+                await sendWhatsApp(
+                    order.whatsapp,
+                    `🙏 *Jai Shri Ram!*\n\n*Update:* A Pandit has been assigned for your pooja.\n\n📿 *Pooja:* ${(order.poojaId as any)?.name}\n🧘 *Pandit:* ${(order.panditId as any)?.name}\n📋 *Booking ID:* ${order.bookingId}\n\nYou will receive another update when the pooja starts.\n\n🛕 *Mandirlok — Divine Blessings Delivered*`
+                );
+            } catch (e) {
+                console.error("[WhatsApp pandit assigned notification failed]", e);
+            }
+        }
+
         revalidatePath("/admin/orders");
         return { success: true, order: JSON.parse(JSON.stringify(order)) };
     } catch (error: any) {
@@ -306,8 +319,20 @@ export async function updateOrderVideo(orderId: string, videoUrl: string) {
         const order = await Order.findByIdAndUpdate(
             orderId,
             { videoUrl, videoSentAt: new Date(), orderStatus: "completed" },
-            { new: true }
-        );
+            { returnDocument: 'after' }
+        ).populate("poojaId", "name");
+
+        if (order) {
+            try {
+                await sendWhatsApp(
+                    order.whatsapp,
+                    `🙏 *Jai Shri Ram!*\n\n*Update:* Your pooja has been successfully completed.\n\n📿 *Pooja:* ${(order.poojaId as any)?.name}\n📋 *Booking ID:* ${order.bookingId}\n📹 *Video Link:* ${videoUrl}\n\nMay the deities bless you and your family.\n\n🛕 *Mandirlok — Divine Blessings Delivered*`
+                );
+            } catch (e) {
+                console.error("[WhatsApp pooja completed notification failed]", e);
+            }
+        }
+
         revalidatePath("/admin/orders");
         return { success: true, order: JSON.parse(JSON.stringify(order)) };
     } catch (error: any) {

@@ -7,6 +7,7 @@ export default function PanditLoginPage() {
   const router = useRouter()
   const [method, setMethod] = useState<'phone' | 'email'>('phone')
   const [phone, setPhone] = useState('')
+  const [countryCode, setCountryCode] = useState('91')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState<'identifier' | 'otp'>('identifier')
@@ -16,9 +17,11 @@ export default function PanditLoginPage() {
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (method === 'phone') {
-      if (!/^[6-9]\d{9}$/.test(phone)) {
+      const isIN = countryCode === '91' && /^[6-9]\d{9}$/.test(phone);
+      const isNP = countryCode === '977' && /^9[78]\d{8}$/.test(phone);
+      if (!isIN && !isNP) {
         setError('Please enter a valid 10-digit mobile number')
         return
       }
@@ -35,7 +38,7 @@ export default function PanditLoginPage() {
       const res = await fetch('/api/pandit/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(method === 'phone' ? { phone } : { email }),
+        body: JSON.stringify(method === 'phone' ? { phone: `${countryCode}${phone}` } : { email }),
       })
       const data = await res.json()
       if (data.success) {
@@ -63,9 +66,9 @@ export default function PanditLoginPage() {
       const res = await fetch('/api/pandit/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...(method === 'phone' ? { phone } : { email }), 
-          otp 
+        body: JSON.stringify({
+          ...(method === 'phone' ? { phone: `${countryCode}${phone}` } : { email }),
+          otp
         }),
       })
       const data = await res.json()
@@ -99,13 +102,13 @@ export default function PanditLoginPage() {
             <div className="space-y-6">
               {/* Method Switcher */}
               <div className="flex bg-[#fff8f0] p-1 rounded-xl border border-[#f0dcc8]">
-                <button 
+                <button
                   onClick={() => { setMethod('phone'); setError(''); }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${method === 'phone' ? 'bg-[#ff7f0a] text-white shadow-md' : 'text-[#6b5b45]'}`}
                 >
                   WhatsApp Login
                 </button>
-                <button 
+                <button
                   onClick={() => { setMethod('email'); setError(''); }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${method === 'email' ? 'bg-[#ff7f0a] text-white shadow-md' : 'text-[#6b5b45]'}`}
                 >
@@ -120,9 +123,14 @@ export default function PanditLoginPage() {
                       📱 Registered Mobile Number
                     </label>
                     <div className="flex gap-2">
-                      <span className="flex items-center px-3 bg-[#fff8f0] border border-[#f0dcc8] rounded-xl text-[#6b5b45] text-sm font-medium">
-                        +91
-                      </span>
+                      <select
+                        value={countryCode}
+                        onChange={e => setCountryCode(e.target.value)}
+                        className="px-2 bg-[#fff8f0] border border-[#f0dcc8] rounded-xl text-[#6b5b45] text-xs font-medium outline-none"
+                      >
+                        <option value="91">+91 (IN)</option>
+                        <option value="977">+977 (NP)</option>
+                      </select>
                       <input
                         type="tel"
                         value={phone}
@@ -183,7 +191,7 @@ export default function PanditLoginPage() {
               <div className="text-center mb-2">
                 <div className="text-4xl mb-2">{method === 'phone' ? '📲' : '📩'}</div>
                 <p className="text-sm text-[#6b5b45]">
-                  OTP sent to <strong>{method === 'phone' ? `+91 ${phone}` : email}</strong>
+                  OTP sent to <strong>{method === 'phone' ? `+${countryCode} ${phone}` : email}</strong>
                 </p>
               </div>
 

@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import PanditSidebar from '@/components/pandit/PanditSidebar'
 import VideoUploadModal from '@/components/pandit/VideoUploadModal'
-import { 
-  Calendar, Search, Phone, ExternalLink, 
+import {
+  Calendar, Search, Phone, ExternalLink,
   ChevronRight, Play, CheckCircle, Clock, AlertCircle, Video
 } from 'lucide-react'
 
@@ -16,7 +16,7 @@ export default function PanditOrdersPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentTab = searchParams.get('tab') || 'today'
-  
+
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<any[]>([])
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
@@ -33,11 +33,11 @@ export default function PanditOrdersPage() {
         const today = new Date().toISOString().split('T')[0]
 
         if (currentTab === 'today') {
-           filtered = filtered.filter((o: any) => 
+          filtered = filtered.filter((o: any) =>
             new Date(o.bookingDate).toISOString().split('T')[0] === today
           )
         } else if (currentTab === 'upcoming') {
-          filtered = filtered.filter((o: any) => 
+          filtered = filtered.filter((o: any) =>
             new Date(o.bookingDate).toISOString().split('T')[0] > today
           )
         } else if (currentTab === 'completed') {
@@ -67,7 +67,7 @@ export default function PanditOrdersPage() {
     { id: 'all', label: 'All Poojas', icon: <Search size={14} /> },
   ]
 
-  const filteredOrders = orders.filter(o => 
+  const filteredOrders = orders.filter(o =>
     o.sankalpName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.bookingId.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -79,10 +79,10 @@ export default function PanditOrdersPage() {
         <header className="bg-white border-b border-[#f0dcc8] px-6 py-4 sticky top-0 z-30">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h1 className="font-display font-bold text-gray-900 text-lg">Manage Poojas</h1>
-            
+
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
+              <input
                 type="text"
                 placeholder="Search by devotee or ID..."
                 className="input-divine w-full sm:w-64 pl-9 py-2 text-sm"
@@ -97,11 +97,10 @@ export default function PanditOrdersPage() {
               <button
                 key={tab.id}
                 onClick={() => router.push(`/pandit/orders?tab=${tab.id}`)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  currentTab === tab.id
-                    ? 'bg-[#ff7f0a] text-white shadow-md'
-                    : 'text-[#6b5b45] hover:bg-white hover:text-[#ff7f0a]'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${currentTab === tab.id
+                  ? 'bg-[#ff7f0a] text-white shadow-md'
+                  : 'text-[#6b5b45] hover:bg-white hover:text-[#ff7f0a]'
+                  }`}
               >
                 {tab.icon} {tab.label}
               </button>
@@ -130,12 +129,11 @@ export default function PanditOrdersPage() {
                         </div>
                       </div>
                       <div className="mt-0 md:mt-4">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                          order.orderStatus === 'completed' ? 'bg-green-50 text-green-600 border-green-100' :
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${order.orderStatus === 'completed' ? 'bg-green-50 text-green-600 border-green-100' :
                           order.orderStatus === 'in-progress' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                          order.orderStatus === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' :
-                          'bg-orange-50 text-orange-600 border-orange-100'
-                        }`}>
+                            order.orderStatus === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' :
+                              'bg-orange-50 text-orange-600 border-orange-100'
+                          }`}>
                           {order.orderStatus}
                         </span>
                       </div>
@@ -146,10 +144,10 @@ export default function PanditOrdersPage() {
                       <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xl">{order.poojaId.emoji}</span>
-                            <h3 className="font-display font-bold text-gray-900">{order.poojaId.name}</h3>
+                            <span className="text-xl">{order.poojaId?.emoji || '🙏'}</span>
+                            <h3 className="font-display font-bold text-gray-900">{order.poojaId?.name || 'Pooja'}</h3>
                           </div>
-                          <p className="text-xs text-[#6b5b45]">Mandir: 🛕 {order.templeId.name}</p>
+                          <p className="text-xs text-[#6b5b45]">Mandir: 🛕 {order.templeId?.name || 'Temple'}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-gray-900">{formatINR(order.totalAmount)}</p>
@@ -169,49 +167,49 @@ export default function PanditOrdersPage() {
                         <div className="col-span-2 sm:col-span-1">
                           <p className="text-[10px] text-[#6b5b45] uppercase font-bold mb-1">Contact</p>
                           <div className="flex items-center gap-2">
-                             <a href={`tel:${order.phone}`} className="p-1 hover:bg-[#fff8f0] rounded text-gray-600"><Phone size={14} /></a>
-                             <a href={`https://wa.me/91${order.whatsapp}`} target="_blank" className="p-1 hover:bg-[#fff8f0] rounded text-[#25D366]"><ExternalLink size={14} /></a>
-                             <span className="text-[11px] font-bold text-gray-900">{order.phone}</span>
+                            <a href={`tel:${order.phone}`} className="p-1 hover:bg-[#fff8f0] rounded text-gray-600"><Phone size={14} /></a>
+                            <a href={`https://wa.me/${order.whatsapp}`} target="_blank" className="p-1 hover:bg-[#fff8f0] rounded text-[#25D366]"><ExternalLink size={14} /></a>
+                            <span className="text-[11px] font-bold text-gray-900">{order.phone}</span>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between mt-5">
-                         <Link 
-                           href={`/pandit/orders/${order._id}`}
-                           className="text-xs font-bold text-[#6b5b45] flex items-center gap-1 hover:text-[#ff7f0a]"
-                         >
-                           Full Details <ChevronRight size={14} />
-                         </Link>
+                        <Link
+                          href={`/pandit/orders/${order._id}`}
+                          className="text-xs font-bold text-[#6b5b45] flex items-center gap-1 hover:text-[#ff7f0a]"
+                        >
+                          Full Details <ChevronRight size={14} />
+                        </Link>
 
-                         <div className="flex gap-2">
-                            {order.orderStatus === 'confirmed' && (
-                              <button 
-                                onClick={() => startPooja(order._id)}
-                                className="btn-saffron py-1.5 px-4 text-[11px] flex items-center gap-1.5"
-                              >
-                                <Play size={12} /> Start Pooja
-                              </button>
-                            )}
-                            {order.orderStatus === 'in-progress' && (
-                              <button 
-                                onClick={() => setSelectedOrder(order)}
-                                className="bg-blue-600 text-white font-bold rounded-xl py-1.5 px-4 text-[11px] flex items-center gap-1.5"
-                              >
-                                <Video size={12} /> Upload Video
-                              </button>
-                            )}
+                        <div className="flex gap-2">
+                          {order.orderStatus === 'confirmed' && (
+                            <button
+                              onClick={() => startPooja(order._id)}
+                              className="btn-saffron py-1.5 px-4 text-[11px] flex items-center gap-1.5"
+                            >
+                              <Play size={12} /> Start Pooja
+                            </button>
+                          )}
+                          {order.orderStatus === 'in-progress' && (
+                            <button
+                              onClick={() => setSelectedOrder(order)}
+                              className="bg-blue-600 text-white font-bold rounded-xl py-1.5 px-4 text-[11px] flex items-center gap-1.5"
+                            >
+                              <Video size={12} /> Upload Video
+                            </button>
+                          )}
 
-                            {order.orderStatus === 'completed' && order.videoUrl && (
-                              <a 
-                                href={order.videoUrl} 
-                                target="_blank"
-                                className="bg-green-100 text-green-700 font-bold rounded-xl py-1.5 px-4 text-[11px] flex items-center gap-1.5"
-                              >
-                                <ExternalLink size={12} /> View Video
-                              </a>
-                            )}
-                         </div>
+                          {order.orderStatus === 'completed' && order.videoUrl && (
+                            <a
+                              href={order.videoUrl}
+                              target="_blank"
+                              className="bg-green-100 text-green-700 font-bold rounded-xl py-1.5 px-4 text-[11px] flex items-center gap-1.5"
+                            >
+                              <ExternalLink size={12} /> View Video
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -225,7 +223,7 @@ export default function PanditOrdersPage() {
               <p className="text-[#6b5b45] max-w-sm mx-auto text-sm">
                 We couldn't find any poojas matching your criteria. Try switching tabs or searching for something else.
               </p>
-              <button 
+              <button
                 onClick={() => router.push('/pandit/orders?tab=all')}
                 className="mt-8 text-[#ff7f0a] font-bold text-sm hover:underline"
               >
@@ -237,15 +235,15 @@ export default function PanditOrdersPage() {
       </div>
 
       {selectedOrder && (
-        <VideoUploadModal 
-          orderId={selectedOrder._id} 
+        <VideoUploadModal
+          orderId={selectedOrder._id}
           devoteeName={selectedOrder.sankalpName}
-          poojaName={selectedOrder.poojaId.name}
+          poojaName={selectedOrder.poojaId?.name || 'Pooja'}
           onSuccess={() => {
             setSelectedOrder(null)
             fetchData()
-          }} 
-          onClose={() => setSelectedOrder(null)} 
+          }}
+          onClose={() => setSelectedOrder(null)}
         />
       )}
 
