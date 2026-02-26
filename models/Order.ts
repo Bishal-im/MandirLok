@@ -2,7 +2,8 @@ import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
 export type OrderStatus =
   | "pending"       // payment done, pandit not assigned yet
-  | "confirmed"     // pandit assigned
+  | "assigned"      // admin assigned pandit, but pandit not accepted yet
+  | "confirmed"     // pandit accepted the booking
   | "in-progress"   // pandit started pooja
   | "completed"     // pooja done, video uploaded
   | "cancelled"     // cancelled by user or admin
@@ -107,7 +108,7 @@ const OrderSchema = new Schema<IOrder>(
 
     orderStatus: {
       type: String,
-      enum: ["pending", "confirmed", "in-progress", "completed", "cancelled"],
+      enum: ["pending", "assigned", "confirmed", "in-progress", "completed", "cancelled"],
       default: "pending",
     },
 
