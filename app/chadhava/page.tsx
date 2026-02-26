@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { Search, MapPin, ChevronRight, Filter, Sparkles, Heart } from "lucide-react";
+import { getUserFavorites, toggleChadhavaFavorite } from "@/lib/actions/user";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Temple {
@@ -16,108 +18,108 @@ interface Temple {
 interface Chadhava {
   _id: string;
   name: string;
+  category: string;
   emoji: string;
   image?: string;
   price: number;
   description: string;
-  isActive: boolean;
+  tag: string;
+  tagColor: string;
   templeId: Temple;
-  createdAt: string;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const SORT_OPTIONS = ["Default", "A-Z"];
+const CATEGORIES = [
+  { id: "all", name: "All Offerings", icon: "✨" },
+  { id: "Bhog", name: "Prasad & Bhog", icon: "🍬" },
+  { id: "Vastra", name: "Shringar & Vastra", icon: "👘" },
+  { id: "Deep Daan", name: "Deep & Oil", icon: "🪔" },
+  { id: "Flowers", name: "Pushpa & Mala", icon: "🌸" },
+  { id: "Seva", name: "Special Seva", icon: "🙏" },
+];
 
 // ── Chadhava Card ─────────────────────────────────────────────────────────────
-function ChadhavaCard({ item }: { item: Chadhava }) {
+function ChadhavaCard({ 
+  item, 
+  isFavorite, 
+  onToggle 
+}: { 
+  item: Chadhava; 
+  isFavorite: boolean;
+  onToggle: (id: string) => void;
+}) {
   return (
-    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col">
-      {/* Image / Emoji Area */}
-      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-amber-700/60 to-yellow-900/70 flex items-center justify-center">
+    <div className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-amber-50 flex flex-col h-full relative cursor-pointer">
+      {/* Link wrapper for most of the card */}
+      <Link href={`/chadhava/${item._id}`} className="absolute inset-0 z-0" />
+      
+      {/* Image Area */}
+      <div className="relative h-56 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center z-10">
         {item.image ? (
           <img
             src={item.image}
             alt={item.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
           />
         ) : (
-          <div className="flex flex-col items-center text-white/40 gap-2">
-            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span className="text-[10px] font-bold uppercase tracking-wider">No Image Available</span>
+          <span className="text-7xl group-hover:scale-110 transition-transform duration-700">
+            {item.emoji || "🌸"}
+          </span>
+        )}
+        
+        {/* Floating Badges */}
+        {item.tag && (
+          <div className={`absolute top-4 left-4 ${item.tagColor || "bg-orange-500"} text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg backdrop-blur-sm`}>
+            {item.tag}
           </div>
         )}
-        {/* Temple badge */}
-        {item.templeId?.name && (
-          <div className="absolute bottom-3 left-3 right-3">
-            <span className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm line-clamp-1">
-              🛕 {item.templeId.name}
-            </span>
+        
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle(item._id);
+          }}
+          className={`absolute top-4 right-4 w-10 h-10 backdrop-blur-md rounded-full flex items-center justify-center transition-all shadow-sm z-20 ${
+            isFavorite 
+              ? "bg-rose-500 text-white" 
+              : "bg-white/80 text-amber-600 hover:text-rose-500 hover:bg-white"
+          }`}
+        >
+          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+        </button>
+
+        <div className="absolute bottom-4 left-4 right-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none">
+          <div className="bg-white/90 backdrop-blur-md text-gray-900 text-[10px] font-bold py-2 px-4 rounded-2xl shadow-xl flex items-center justify-center gap-2">
+            View Details <ChevronRight size={12} />
           </div>
-        )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="p-5 flex flex-col flex-1">
-        <h3 className="font-bold text-gray-900 text-base mb-2 line-clamp-2 leading-snug">
+      <div className="p-6 flex flex-col flex-1 space-y-3 z-10 pointer-events-none">
+        <div className="flex items-center gap-2 text-[10px] font-bold text-amber-600 uppercase tracking-widest">
+           <span>{item.category || "General"}</span>
+        </div>
+        
+        <h3 className="font-bold text-gray-900 text-lg group-hover:text-amber-600 transition-colors line-clamp-1 leading-tight">
           {item.name}
         </h3>
 
-        {item.templeId?.location && (
-          <div className="flex items-start gap-1.5 mb-3">
-            <svg
-              className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-              />
-            </svg>
-            <p className="text-xs text-gray-500 line-clamp-1">
-              {item.templeId.location}
-            </p>
+        <div className="flex items-center gap-1.5 text-gray-400">
+           <MapPin size={12} className="text-amber-400" />
+           <span className="text-[11px] font-medium line-clamp-1">{item.templeId?.name}</span>
+        </div>
+
+        <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed flex-1">
+          {item.description}
+        </p>
+
+        <div className="pt-4 flex items-center justify-between border-t border-amber-50 mt-auto">
+
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm">
+            <ChevronRight size={20} />
           </div>
-        )}
-
-        {item.description && (
-          <p className="text-xs text-gray-600 mb-4 line-clamp-3 leading-relaxed flex-1">
-            {item.description}
-          </p>
-        )}
-
-        {/* CTA Button Only */}
-        <div className="flex items-center justify-end pt-3 border-t border-gray-100 mt-auto">
-          <button
-            onClick={() => {
-              if (item.templeId?._id) {
-                window.location.href = `/temples/${item.templeId._id}`;
-              } else {
-                window.location.href = "/temples";
-              }
-            }}
-            className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2.5 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-amber-200"
-          >
-            Offer Now
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 8l4 4m0 0l-4 4m4-4H3"
-              />
-            </svg>
-          </button>
         </div>
       </div>
     </div>
@@ -127,109 +129,36 @@ function ChadhavaCard({ item }: { item: Chadhava }) {
 // ── Skeleton Card ─────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
-      <div className="h-44 bg-gray-200" />
-      <div className="p-5 space-y-3">
-        <div className="h-4 bg-gray-200 rounded w-3/4" />
-        <div className="h-3 bg-gray-200 rounded w-1/2" />
-        <div className="h-3 bg-gray-200 rounded w-full" />
-        <div className="h-8 bg-gray-200 rounded w-full mt-4" />
+    <div className="bg-white rounded-[2.5rem] overflow-hidden border border-amber-50 animate-pulse">
+      <div className="h-56 bg-gray-100" />
+      <div className="p-6 space-y-4">
+        <div className="h-4 bg-gray-100 rounded w-1/4" />
+        <div className="h-6 bg-gray-100 rounded w-3/4" />
+        <div className="h-3 bg-gray-100 rounded w-full" />
+        <div className="h-12 bg-gray-100 rounded w-full mt-4" />
       </div>
     </div>
   );
 }
 
-// ── Page Banner ───────────────────────────────────────────────────────────────
-function PageBanner() {
-  return (
-    <section className="relative h-64 md:h-80 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#4a2000] to-[#1a0a00]" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#1a0a00]/90 via-[#3a1500]/70 to-transparent" />
-      <div className="relative z-10 h-full flex items-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex flex-wrap gap-3 mb-4">
-            <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full">
-              Sacred Chadhava Offerings
-            </span>
-            <span className="bg-white/10 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
-              Offered by Expert Pandits
-            </span>
-            <span className="bg-white/10 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
-              Video Proof in 24–48 Hours
-            </span>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Mandirlok Chadhava Seva
-          </h1>
-          <p className="text-white/80 text-base max-w-xl leading-relaxed">
-            Make sacred offerings — flowers, fruits, sweets & more — at India's
-            most powerful temples on your behalf. Connect with the divine from
-            anywhere.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── How It Works Banner ───────────────────────────────────────────────────────
-function HowItWorksBanner() {
-  const steps = [
-    {
-      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
-      title: "Choose Temple",
-      desc: "Select from 500+ sacred temples across India",
-    },
-    {
-      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>,
-      title: "Pick Chadhava",
-      desc: "Choose flowers, fruits, sweets or any sacred item",
-    },
-    {
-      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>,
-      title: "Secure Payment",
-      desc: "Pay securely via UPI, card or net banking",
-    },
-    {
-      icon: <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>,
-      title: "Receive Video",
-      desc: "Get video proof of your offering within 24–48 hrs",
-    },
-  ];
-  return (
-    <div className="bg-gradient-to-br from-amber-50 to-yellow-50 border-b border-amber-100 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {steps.map((s, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-xl shrink-0">
-                {s.icon}
-              </div>
-              <div>
-                <h4 className="font-bold text-gray-900 text-sm mb-0.5">
-                  {s.title}
-                </h4>
-                <p className="text-gray-500 text-xs leading-relaxed">
-                  {s.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Main Export ───────────────────────────────────────────────────────────────
 export default function ChadhavaPage() {
   const [items, setItems] = useState<Chadhava[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sortBy, setSortBy] = useState("Default");
+  const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
 
-  // Fetch chadhava items from API
+  useEffect(() => {
+    async function fetchFavorites() {
+      const res = await getUserFavorites();
+      if (res.success && res.data) {
+        setFavorites(res.data);
+      }
+    }
+    fetchFavorites();
+  }, []);
+
   useEffect(() => {
     const fetchItems = async () => {
       setLoading(true);
@@ -237,23 +166,18 @@ export default function ChadhavaPage() {
       try {
         const params = new URLSearchParams();
         if (search) params.set("search", search);
+        if (activeCategory !== "all") params.set("category", activeCategory);
 
         const res = await fetch(`/api/chadhava?${params.toString()}`);
         const data = await res.json();
 
         if (data.success) {
-          let result: Chadhava[] = data.data;
-
-          // Client-side sorting (price sorting removed)
-          if (sortBy === "A-Z")
-            result = [...result].sort((a, b) => a.name.localeCompare(b.name));
-
-          setItems(result);
+          setItems(data.data);
         } else {
           setError("Failed to load chadhava offerings.");
         }
       } catch {
-        setError("Something went wrong. Please try again.");
+        setError("Something went wrong.");
       } finally {
         setLoading(false);
       }
@@ -261,114 +185,152 @@ export default function ChadhavaPage() {
 
     const timer = setTimeout(fetchItems, search ? 400 : 0);
     return () => clearTimeout(timer);
-  }, [sortBy, search]);
+  }, [activeCategory, search]);
+
+  const handleToggleFavorite = async (id: string) => {
+    const res = await toggleChadhavaFavorite(id);
+    if (res.success) {
+      setFavorites(prev => 
+        res.isAdded ? [...prev, id] : prev.filter(fid => fid !== id)
+      );
+    } else {
+      alert(res.message || "Failed to toggle favorite");
+    }
+  };
+
+  // Sort items: favorites first
+  const sortedItems = [...items].sort((a, b) => {
+    const aFav = favorites.includes(a._id);
+    const bFav = favorites.includes(b._id);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    return 0;
+  });
 
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-gray-50 font-sans">
-        <PageBanner />
-        <HowItWorksBanner />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Search + Sort */}
-          <div className="flex flex-wrap gap-4 items-center mb-8">
-            <div className="relative flex-1 min-w-[200px]">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search chadhava offerings, temples..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white"
-              />
-            </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white text-gray-700"
-            >
-              {SORT_OPTIONS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-            <span className="text-sm text-gray-400 ml-auto">
-              {loading
-                ? "Loading..."
-                : `${items.length} offering${items.length !== 1 ? "s" : ""} found`}
-            </span>
+      <main className="min-h-screen bg-[#fdfaf5] font-sans pt-20">
+        {/* Modern Header */}
+        <section className="relative py-20 overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full">
+            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-amber-200/20 blur-[120px] rounded-full"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-200/20 blur-[120px] rounded-full"></div>
           </div>
-
-          {/* Error */}
-          {error && (
-            <div className="text-center py-10">
-              <p className="text-red-500 text-sm mb-4">{error}</p>
-              <button
-                onClick={() => {
-                  setSearch("");
-                }}
-                className="bg-amber-500 text-white px-6 py-2.5 rounded-full text-sm font-semibold"
-              >
-                Try Again
-              </button>
+          
+          <div className="container-app relative z-10 text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-full border border-amber-100 text-amber-700 text-[10px] font-bold tracking-[0.2em] uppercase">
+              <Sparkles size={12} /> Sacred Offerings Seva
             </div>
-          )}
+            <h1 className="text-4xl md:text-6xl font-black text-gray-900 leading-tight">
+              Express Your <span className="text-amber-600">Devotion</span><br />
+              Through Chadhava
+            </h1>
+            <p className="max-w-xl mx-auto text-gray-500 text-sm md:text-base leading-relaxed">
+              Make authentic offerings at 500+ sacred temples across India. 
+              Receive personalized sankalp benefits and video proof of your devotion.
+            </p>
+          </div>
+        </section>
 
-          {/* Loading Skeletons */}
-          {loading && !error && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          )}
-
-          {/* Chadhava Grid */}
-          {!loading && !error && items.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {items.map((item) => (
-                <ChadhavaCard key={item._id} item={item} />
-              ))}
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!loading && !error && items.length === 0 && (
-            <div className="text-center py-20">
-              <div className="flex justify-center mb-6">
-                <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center">
-                  <svg className="w-10 h-10 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
+        {/* Dynamic Filters & Search */}
+        <div className="sticky top-20 z-40 bg-[#fdfaf5]/80 backdrop-blur-xl border-y border-amber-50 py-6">
+          <div className="container-app space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              {/* Categories */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2 md:pb-0">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${
+                      activeCategory === cat.id
+                        ? "bg-amber-500 text-white shadow-lg shadow-amber-200"
+                        : "bg-white text-gray-600 hover:bg-amber-50 border border-amber-100 shadow-sm"
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.name}</span>
+                  </button>
+                ))}
               </div>
-              <h3 className="text-xl font-bold text-gray-700 mb-2">
-                No offerings found
-              </h3>
-              <p className="text-gray-500 mb-6">
-                Try a different search keyword
-              </p>
-              <button
-                onClick={() => setSearch("")}
-                className="bg-amber-500 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-amber-600 transition-colors"
-              >
-                Clear Search
-              </button>
+
+              {/* Search Bar */}
+              <div className="relative w-full md:w-80 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Search offerings or temples..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-white border border-amber-100 rounded-[1.25rem] text-xs focus:outline-none focus:ring-4 focus:ring-amber-500/5 focus:border-amber-500 transition-all shadow-sm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="container-app py-12">
+          {/* Results Summary */}
+          {!loading && !error && (
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2 text-gray-400 text-xs">
+                <Filter size={14} />
+                <span>Showing <span className="text-gray-900 font-bold">{items.length}</span> results</span>
+              </div>
+            </div>
+          )}
+
+          {/* Grid */}
+          {error ? (
+            <div className="text-center py-20 bg-white rounded-[3rem] border border-amber-100 shadow-sm">
+              <div className="text-5xl mb-4">🪔</div>
+              <p className="text-red-500 text-sm mb-6 font-medium">{error}</p>
+              <button onClick={() => setSearch("")} className="btn-primary">Try Again</button>
+            </div>
+          ) : loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : sortedItems.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {sortedItems.map((item) => (
+                <ChadhavaCard 
+                  key={item._id} 
+                  item={item} 
+                  isFavorite={favorites.includes(item._id)}
+                  onToggle={handleToggleFavorite}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-24 bg-white rounded-[3rem] border border-amber-100 shadow-sm">
+              <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="w-10 h-10 text-amber-200" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No offerings found</h3>
+              <p className="text-gray-500 text-xs mb-8">Try adjusting your filters or search terms.</p>
+              <button onClick={() => { setSearch(""); setActiveCategory("all"); }} className="btn-primary">Clear all filters</button>
             </div>
           )}
         </div>
+        
+        {/* Support Section */}
+        <section className="container-app py-12 pb-20">
+          <div className="bg-gradient-to-br from-amber-600 to-orange-700 rounded-[3rem] p-10 md:p-16 text-center text-white relative overflow-hidden shadow-2xl">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+             <div className="relative z-10 space-y-6">
+                <h2 className="text-3xl md:text-4xl font-black">Need a Special Seva?</h2>
+                <p className="max-w-lg mx-auto text-white/80 text-sm leading-relaxed">
+                  If you wish to perform a specific ritual or offering not listed here, our team can arrange it personally for you.
+                </p>
+                <div className="flex flex-wrap justify-center gap-4 pt-4">
+                  <a href="https://wa.me/yournumber" className="bg-white text-amber-700 font-bold px-8 py-3 rounded-2xl hover:bg-amber-50 transition-colors shadow-lg">WhatsApp Us</a>
+                  <Link href="/contact" className="bg-white/10 backdrop-blur-md border border-white/30 text-white font-bold px-8 py-3 rounded-2xl hover:bg-white/20 transition-colors">Contact Support</Link>
+                </div>
+             </div>
+          </div>
+        </section>
       </main>
       <Footer />
     </>

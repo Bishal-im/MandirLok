@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/db";
 import Order from "@/models/Order";
 import Pooja from "@/models/Pooja";
 import Chadhava from "@/models/Chadhava";
+import Pandit from "@/models/Pandit";
 import { sendWhatsApp } from "@/lib/whatsapp";
 
 export async function POST(req: Request) {
@@ -61,13 +62,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Fetch pooja and chadhava details for storing in order
-    const pooja = await Pooja.findById(poojaId);
-    if (!pooja) {
-      return NextResponse.json(
-        { success: false, message: "Pooja not found" },
-        { status: 404 }
-      );
+    // 3. Fetch pooja (if provided) and chadhava details
+    let poojaAmount = 0;
+    let poojaName = "Sacred Offering";
+
+    if (poojaId) {
+      const pooja = await Pooja.findById(poojaId);
+      if (!pooja) {
+        return NextResponse.json(
+          { success: false, message: "Pooja not found" },
+          { status: 404 }
+        );
+      }
+      poojaAmount = pooja.price * qty;
+      poojaName = pooja.name;
     }
 
     // Build chadhava items array
@@ -85,13 +93,11 @@ export async function POST(req: Request) {
       chadhavaAmount = chadhavaList.reduce((sum, c) => sum + c.price, 0);
     }
 
-    const poojaAmount = pooja.price * qty;
     const totalAmount = poojaAmount + chadhavaAmount;
 
     // 4. Save order to DB
-    const order = await Order.create({
+    const orderObj: any = {
       userId: decoded.userId,
-      poojaId,
       templeId,
       bookingDate: new Date(bookingDate),
       sankalpName,
@@ -111,13 +117,56 @@ export async function POST(req: Request) {
       razorpayPaymentId,
       razorpaySignature,
       orderStatus: "pending",
-    });
+    };
 
-    // 5. Send WhatsApp confirmation
+    if (poojaId) {
+      orderObj.poojaId = poojaId;
+    }
+
+    const order = await Order.create(orderObj);
+
+    // 5. Auto-assign Pandit
+    try {
+      const assignedPandit = await Pandit.findOne({
+        assignedTemples: templeId,
+        isActive: true
+      });
+
+      if (assignedPandit) {
+        await Order.findByIdAndUpdate(order._id, {
+          panditId: assignedPandit._id,
+          orderStatus: "confirmed"
+        });
+
+        // Notify devotee about pandit assignment
+        try {
+          await sendWhatsApp(
+            whatsapp,
+            `🙏 *Update on your Mandirlok Booking*\n\nYour *${poojaName}* has been assigned to:\n👤 *Pandit ${assignedPandit.name}*\n📱 ${assignedPandit.phone}\n\n📋 Booking ID: ${order.bookingId}\n📅 Date: ${new Date(bookingDate).toLocaleDateString("en-IN")}\n\n*Your pooja will be performed as scheduled. Stay blessed!* 🛕`
+          );
+        } catch (e) {
+          console.error("[WhatsApp auto-assign - devotee notification failed]", e);
+        }
+
+        // Notify pandit
+        try {
+          await sendWhatsApp(
+            assignedPandit.whatsapp,
+            `🛕 *New Pooja Assigned — Mandirlok*\n\n📿 *Pooja:* ${poojaName}\n👤 *Devotee:* ${sankalpName}\n📅 *Date:* ${new Date(bookingDate).toLocaleDateString("en-IN")}\n📋 *Booking ID:* ${order.bookingId}\n\nPlease log in to your Pandit Portal to view full details.`
+          );
+        } catch (e) {
+          console.error("[WhatsApp auto-assign - pandit notification failed]", e);
+        }
+      }
+    } catch (e) {
+      console.error("[Pandit auto-assignment failed]", e);
+    }
+
+    // 6. Send WhatsApp confirmation (Initial)
     try {
       await sendWhatsApp(
         whatsapp,
-        `🙏 *Jai Shri Ram!*\n\nYour booking is confirmed on *Mandirlok*.\n\n📋 *Booking ID:* ${order.bookingId}\n📿 *Pooja:* ${pooja.name}\n📅 *Date:* ${new Date(bookingDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}\n💰 *Amount Paid:* ₹${totalAmount}\n\nA pandit will be assigned shortly. You will receive another WhatsApp update.\n\n🛕 *Mandirlok — Divine Blessings Delivered*`
+        `🙏 *Jai Shri Ram!*\n\nYour booking is confirmed on *Mandirlok*.\n\n📋 *Booking ID:* ${order.bookingId}\n📿 *Pooja:* ${poojaName}\n📅 *Date:* ${new Date(bookingDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}\n💰 *Amount Paid:* ₹${totalAmount}\n\nA pandit will be assigned shortly. You will receive another WhatsApp update.\n\n🛕 *Mandirlok — Divine Blessings Delivered*`
       );
     } catch (e) {
       console.error("[WhatsApp booking confirmation failed]", e);

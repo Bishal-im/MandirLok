@@ -16,20 +16,20 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { poojaId, qty = 1, chadhavaIds = [] } = body;
 
-    if (!poojaId) {
-      return NextResponse.json(
-        { success: false, message: "poojaId is required" },
-        { status: 400 }
-      );
-    }
-
-    // Fetch pooja price
-    const pooja = await Pooja.findById(poojaId);
-    if (!pooja) {
-      return NextResponse.json(
-        { success: false, message: "Pooja not found" },
-        { status: 404 }
-      );
+    // 2. Fetch pooja price (if provided)
+    let poojaAmount = 0;
+    let poojaName = "Sacred Offering";
+    
+    if (poojaId) {
+      const pooja = await Pooja.findById(poojaId);
+      if (!pooja) {
+        return NextResponse.json(
+          { success: false, message: "Pooja not found" },
+          { status: 404 }
+        );
+      }
+      poojaAmount = pooja.price * qty;
+      poojaName = pooja.name;
     }
 
     // Calculate chadhava total
@@ -39,7 +39,6 @@ export async function POST(req: Request) {
       chadhavaAmount = chadhavaItems.reduce((sum, item) => sum + item.price, 0);
     }
 
-    const poojaAmount = pooja.price * qty;
     const totalAmount = poojaAmount + chadhavaAmount;
 
     // Razorpay amount is in paise (multiply by 100)
@@ -48,8 +47,8 @@ export async function POST(req: Request) {
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
       notes: {
-        poojaId: poojaId,
-        poojaName: pooja.name,
+        poojaId: poojaId || "",
+        poojaName: poojaName,
         qty: qty.toString(),
         chadhavaIds: chadhavaIds.join(","),
       },

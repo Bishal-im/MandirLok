@@ -19,7 +19,7 @@ export interface IOrderChadhava {
 export interface IOrder extends Document {
   // References
   userId: Types.ObjectId;
-  poojaId: Types.ObjectId;
+  poojaId?: Types.ObjectId;
   templeId: Types.ObjectId;
   panditId?: Types.ObjectId;
 
@@ -74,7 +74,7 @@ const OrderChadhavaSchema = new Schema(
 const OrderSchema = new Schema<IOrder>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    poojaId: { type: Schema.Types.ObjectId, ref: "Pooja", required: true },
+    poojaId: { type: Schema.Types.ObjectId, ref: "Pooja", required: false, default: null },
     templeId: { type: Schema.Types.ObjectId, ref: "Temple", required: true },
     panditId: { type: Schema.Types.ObjectId, ref: "Pandit", default: null },
 
@@ -128,7 +128,11 @@ OrderSchema.pre("save", async function () {
   }
 });
 
-const Order: Model<IOrder> =
-  mongoose.models.Order || mongoose.model<IOrder>("Order", OrderSchema);
+// Force re-registration in development to pick up schema changes
+if (mongoose.models.Order) {
+  delete mongoose.models.Order;
+}
+
+const Order: Model<IOrder> = mongoose.model<IOrder>("Order", OrderSchema);
 
 export default Order;

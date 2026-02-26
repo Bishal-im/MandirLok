@@ -5,6 +5,9 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
+import { Search, MapPin, ChevronRight, Heart, Star } from "lucide-react";
+import { getUserTempleFavorites, toggleTempleFavorite } from "@/lib/actions/user";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Temple {
   _id: string;
@@ -66,78 +69,97 @@ function ImagePlaceholder({ label = "", className = "" }: { label?: string; clas
 }
 
 // ── Temple Card ───────────────────────────────────────────────────────────────
-function TempleCard({ temple }: { temple: Temple }) {
+function TempleCard({ 
+  temple, 
+  isFavorite, 
+  onToggle 
+}: { 
+  temple: Temple;
+  isFavorite: boolean;
+  onToggle: (id: string) => void;
+}) {
   return (
-    <Link href={`/temples/${temple.slug || temple._id}`} className="group block">
-      <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100">
-        {/* Image */}
-        <div className="relative h-52 overflow-hidden">
-          {temple.images?.[0] ? (
-            <img
-              src={temple.images[0]}
-              alt={temple.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <ImagePlaceholder
-              className="w-full h-full group-hover:scale-105 transition-transform duration-500"
-              label={temple.name}
-            />
-          )}
+    <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col h-full cursor-pointer">
+      {/* Link Overlay */}
+      <Link href={`/temples/${temple.slug || temple._id}`} className="absolute inset-0 z-0" />
+      
+      {/* Image */}
+      <div className="relative h-52 overflow-hidden z-10">
+        {temple.images?.[0] ? (
+          <img
+            src={temple.images[0]}
+            alt={temple.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <ImagePlaceholder
+            className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+            label={temple.name}
+          />
+        )}
 
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex gap-2">
-            {temple.isFeatured && (
-              <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                FEATURED
-              </span>
-            )}
-            {temple.isPopular && (
-              <span className="bg-rose-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                POPULAR
-              </span>
-            )}
-          </div>
+        {/* Favorite Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle(temple._id);
+          }}
+          className={`absolute top-3 right-3 w-9 h-9 backdrop-blur-md rounded-xl flex items-center justify-center transition-all shadow-sm z-20 ${
+            isFavorite 
+              ? "bg-rose-500 text-white" 
+              : "bg-white/80 text-gray-400 hover:text-rose-500 hover:bg-white"
+          }`}
+        >
+          <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
+        </button>
 
-          {/* Category Tag */}
-          <div className="absolute bottom-3 left-3">
-            <span className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
-              {temple.category}
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
+          {temple.isFeatured && (
+            <span className="bg-orange-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-lg shadow-lg">
+              FEATURED
             </span>
-          </div>
+          )}
+          {temple.isPopular && (
+            <span className="bg-rose-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-lg shadow-lg">
+              POPULAR
+            </span>
+          )}
         </div>
 
-        {/* Content */}
-        <div className="p-5">
-          <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-1">{temple.name}</h3>
+        {/* Category Tag */}
+        <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
+          <span className="bg-black/60 text-white text-[10px] font-medium px-2.5 py-1 rounded-lg backdrop-blur-sm">
+            {temple.category}
+          </span>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-1.5 mb-2">
-            <svg className="w-3.5 h-3.5 text-orange-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            </svg>
-            <span className="text-xs text-gray-500">{temple.location}</span>
+      {/* Content */}
+      <div className="p-5 flex flex-col flex-1 z-10 pointer-events-none">
+        <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-1 group-hover:text-orange-600 transition-colors">{temple.name}</h3>
+
+        <div className="flex items-center gap-1.5 mb-2">
+          <MapPin size={12} className="text-orange-400" />
+          <span className="text-xs text-gray-500 font-medium">{temple.location}</span>
+        </div>
+
+        <p className="text-xs text-gray-500 mb-4 leading-relaxed line-clamp-2 flex-1">{temple.description}</p>
+
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+          <div className="flex items-center gap-1">
+            <Star size={14} className="text-amber-400 fill-current" />
+            <span className="text-sm font-bold text-gray-900">{temple.rating}</span>
+            <span className="text-[10px] text-gray-400 font-medium">({temple.totalReviews?.toLocaleString()})</span>
           </div>
-
-          <p className="text-xs text-gray-500 mb-3 leading-relaxed line-clamp-2">{temple.description}</p>
-
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-            <div className="flex items-center gap-1">
-              <svg className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <span className="text-sm font-bold text-gray-900">{temple.rating}</span>
-              <span className="text-xs text-gray-400">({temple.totalReviews?.toLocaleString()})</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-orange-600">
-              <span className="text-xs font-semibold">{temple.pujasAvailable} Pujas Available</span>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
+          <div className="flex items-center gap-1 text-orange-600 font-bold">
+            <span className="text-[10px] uppercase tracking-tighter">{temple.pujasAvailable} Pujas</span>
+            <ChevronRight size={14} />
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -188,12 +210,24 @@ function PageBanner() {
 // ── Main Export ───────────────────────────────────────────────────────────────
 export default function TemplesPage() {
   const [temples,          setTemples]          = useState<Temple[]>([]);
+  const [favorites,        setFavorites]        = useState<string[]>([]);
   const [loading,          setLoading]          = useState(true);
   const [error,            setError]            = useState("");
   const [activeCategory,   setActiveCategory]   = useState("All Temples");
   const [activeState,      setActiveState]      = useState("All States");
   const [search,           setSearch]           = useState("");
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
+
+  // Fetch favorites on mount
+  useEffect(() => {
+    async function fetchFavorites() {
+      const res = await getUserTempleFavorites();
+      if (res.success && res.data) {
+        setFavorites(res.data);
+      }
+    }
+    fetchFavorites();
+  }, []);
 
   // Fetch temples from API
   useEffect(() => {
@@ -222,10 +256,29 @@ export default function TemplesPage() {
       }
     };
 
-    // Debounce search input by 400ms
     const timer = setTimeout(fetchTemples, search ? 400 : 0);
     return () => clearTimeout(timer);
   }, [activeCategory, activeState, showFeaturedOnly, search]);
+
+  const handleToggleFavorite = async (id: string) => {
+    const res = await toggleTempleFavorite(id);
+    if (res.success) {
+      setFavorites(prev => 
+        res.isAdded ? [...prev, id] : prev.filter(fid => fid !== id)
+      );
+    } else {
+      alert(res.message || "Failed to toggle favorite");
+    }
+  };
+
+  // Sort temples: favorites first
+  const sortedTemples = [...temples].sort((a, b) => {
+    const aFav = favorites.includes(a._id);
+    const bFav = favorites.includes(b._id);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    return 0;
+  });
 
   return (
     <>
@@ -317,10 +370,15 @@ export default function TemplesPage() {
           )}
 
           {/* Temple Grid */}
-          {!loading && !error && temples.length > 0 && (
+          {!loading && !error && sortedTemples.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {temples.map((temple) => (
-                <TempleCard key={temple._id} temple={temple} />
+              {sortedTemples.map((temple) => (
+                <TempleCard 
+                  key={temple._id} 
+                  temple={temple} 
+                  isFavorite={favorites.includes(temple._id)}
+                  onToggle={handleToggleFavorite}
+                />
               ))}
             </div>
           )}

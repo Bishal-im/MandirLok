@@ -60,26 +60,58 @@ function CartContent() {
   const [payError, setPayError] = useState("");
 
   useEffect(() => {
-    if (!poojaId) {
-      setConfigError("Invalid booking link (Missing Pooja ID).");
-      setLoadingConfig(false);
-      return;
+    async function fetchData() {
+      setLoadingConfig(true);
+      setConfigError("");
+
+      try {
+        if (poojaId) {
+          // Case 1: Booking with a Pooja
+          const res = await fetch(`/api/poojas/${poojaId}`);
+          const data = await res.json();
+          if (data.success) {
+            setPooja(data.data.pooja);
+            const allOfferings = data.data.chadhavaItems || [];
+            setSelectedOfferings(allOfferings.filter((o: any) => selectedOfferingIds.includes(o._id)));
+          } else {
+            setConfigError("Pooja details could not be loaded.");
+          }
+        } else if (templeId && selectedOfferingIds.length > 0) {
+          // Case 2: Standalone Chadhava booking
+          // Fetch temple details for the summary
+          const templeRes = await fetch(`/api/temples/${templeId}`);
+          const templeData = await templeRes.json();
+          
+          // Fetch the chadhava items details
+          // We can use the generic chadhava API or just fetch them one by one/filter
+          // For now, let's fetch them using the chadhava list API with IDs
+          const chadhavaRes = await fetch(`/api/chadhava?templeId=${templeId}`);
+          const chadhavaData = await chadhavaRes.json();
+
+          if (templeData.success && chadhavaData.success) {
+            // Mock a "pooja" object for the UI context where it expects templeId.name
+            setPooja({
+              name: "Sacred Offering",
+              price: 0,
+              templeId: templeData.data
+            });
+            const allOfferings = chadhavaData.data || [];
+            setSelectedOfferings(allOfferings.filter((o: any) => selectedOfferingIds.includes(o._id)));
+          } else {
+            setConfigError("Offering details could not be loaded.");
+          }
+        } else {
+          setConfigError("Invalid booking link (Missing details).");
+        }
+      } catch (err) {
+        setConfigError("Network error while loading details.");
+      } finally {
+        setLoadingConfig(false);
+      }
     }
 
-    fetch(`/api/poojas/${poojaId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setPooja(data.data.pooja);
-          const allOfferings = data.data.chadhavaItems || [];
-          setSelectedOfferings(allOfferings.filter((o: any) => selectedOfferingIds.includes(o._id)));
-        } else {
-          setConfigError("Pooja details could not be loaded.");
-        }
-      })
-      .catch(() => setConfigError("Network error while loading pooja details."))
-      .finally(() => setLoadingConfig(false));
-  }, [poojaId]);
+    fetchData();
+  }, [poojaId, templeId, offeringsStr]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -126,7 +158,7 @@ function CartContent() {
           amount: amount * 100,
           currency: "INR",
           name: "MandirLok",
-          description: `Booking: ${pooja.name}`,
+          description: `Booking: ${pooja.name === 'Sacred Offering' ? selectedOfferings.map(o => o.name).join(', ') : pooja.name}`,
           order_id: razorpayOrderId,
           prefill: {
             name: form.name,
@@ -394,12 +426,20 @@ function CartContent() {
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-[#1a1209] text-sm">{pooja.name}</p>
+                  <p className="font-semibold text-[#1a1209] text-sm">
+                    {pooja.name === 'Sacred Offering' ? 'Chadhava Offering' : pooja.name}
+                  </p>
                   <p className="text-xs text-[#ff7f0a]">🛕 {pooja.templeId?.name}</p>
-                  <p className="text-xs text-[#6b5b45]">📅 {dateStr ? new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : ""}</p>
-                  <p className="text-xs text-[#6b5b45]">👥 {qty} Devotee{qty > 1 ? "s" : ""}</p>
+                  {dateStr && (
+                    <p className="text-xs text-[#6b5b45]">📅 {new Date(dateStr).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  )}
+                  {pooja.name !== 'Sacred Offering' && (
+                    <p className="text-xs text-[#6b5b45]">👥 {qty} Devotee{qty > 1 ? "s" : ""}</p>
+                  )}
                 </div>
-                <p className="font-bold text-[#ff7f0a]">₹{totalObj.base.toLocaleString()}</p>
+                {totalObj.base > 0 && (
+                  <p className="font-bold text-[#ff7f0a]">₹{totalObj.base.toLocaleString()}</p>
+                )}
               </div>
               {selectedOfferings.map((o) => (
                 <div key={o._id} className="flex justify-between items-center text-xs text-[#6b5b45] mb-2">
