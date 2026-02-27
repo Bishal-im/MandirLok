@@ -1,41 +1,57 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Bell, Shield, Database, Globe, Save, Layout, Plus, Trash2, Image as ImageIcon, IndianRupee } from "lucide-react";
+import {
+    Layout,
+    Bell,
+    Shield,
+    Globe,
+    IndianRupee,
+    Save,
+    Plus,
+    Trash2,
+    Image as ImageIcon
+} from "lucide-react";
 import { getSettings, updateSettings } from "@/lib/actions/admin";
 
-export default function AdminSettingsPage() {
+export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState("general");
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    // Landing Page Slides State
     const [slides, setSlides] = useState<any[]>([]);
     const [dashboardSettings, setDashboardSettings] = useState({
         bannerUrl: "",
         welcomeMessage: "Welcome to your Divine Journey"
     });
+    const [pageBanners, setPageBanners] = useState({
+        poojas: "",
+        chadhava: "",
+        temples: ""
+    });
 
     const tabs = [
         { id: "general", label: "General", icon: <Globe size={18} /> },
         { id: "landing", label: "Landing Page", icon: <Layout size={18} /> },
+        { id: "page_banners", label: "Page Banners", icon: <ImageIcon size={18} /> },
         { id: "user_dashboard", label: "User Dashboard", icon: <Layout size={18} /> },
         { id: "security", label: "Security", icon: <Shield size={18} /> },
         { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
-        { id: "payments", label: "Payments & Finance", icon: <IndianRupee size={18} /> },
-        { id: "database", label: "System & DB", icon: <Database size={18} /> },
+        { id: "payments", label: "Payments", icon: <IndianRupee size={18} /> },
     ];
 
     useEffect(() => {
         async function fetchSettings() {
             setLoading(true);
-            const [slideRes, dashRes] = await Promise.all([
+            const [slideRes, dashRes, bannerRes] = await Promise.all([
                 getSettings("landing_page_slides"),
-                getSettings("dashboard_settings")
+                getSettings("dashboard_settings"),
+                getSettings("page_banners")
             ]);
 
             if (slideRes && slideRes.value) setSlides(slideRes.value);
             if (dashRes && dashRes.value) setDashboardSettings(dashRes.value);
+            if (bannerRes && bannerRes.value) setPageBanners(bannerRes.value);
 
             setLoading(false);
         }
@@ -43,15 +59,7 @@ export default function AdminSettingsPage() {
     }, []);
 
     const handleAddSlide = () => {
-        setSlides([...slides, {
-            src: "",
-            title: "New Slide Title",
-            subtitle: "New slide subtitle goes here.",
-            cta: "Call to Action",
-            ctaLink: "/poojas",
-            secondary: "Secondary Action",
-            secondaryLink: "/temples"
-        }]);
+        setSlides([...slides, { src: "", title: "", subtitle: "", cta: "Book Now", ctaLink: "/poojas", secondary: "Learn More", secondaryLink: "/about" }]);
     };
 
     const handleRemoveSlide = (index: number) => {
@@ -59,9 +67,9 @@ export default function AdminSettingsPage() {
     };
 
     const handleUpdateSlide = (index: number, field: string, value: string) => {
-        const next = [...slides];
-        next[index] = { ...next[index], [field]: value };
-        setSlides(next);
+        const newSlides = [...slides];
+        newSlides[index][field] = value;
+        setSlides(newSlides);
     };
 
     const handleSave = async () => {
@@ -71,6 +79,8 @@ export default function AdminSettingsPage() {
                 await updateSettings("landing_page_slides", slides, "Banner slides for the landing page");
             } else if (activeTab === "user_dashboard") {
                 await updateSettings("dashboard_settings", dashboardSettings, "Banner and welcome info for user dashboard");
+            } else if (activeTab === "page_banners") {
+                await updateSettings("page_banners", pageBanners, "Background images for Poojas and Chadhava banners");
             }
             alert("Settings saved successfully!");
         } catch (err) {
@@ -81,13 +91,10 @@ export default function AdminSettingsPage() {
     };
 
     return (
-        <div className="max-w-5xl space-y-6">
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 text-[#ff7f0a] rounded-xl">
-                    <Settings size={22} />
-                </div>
+        <div className="space-y-8 pb-20">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-display font-bold text-gray-900">Admin Settings</h2>
+                    <h2 className="text-2xl font-black text-gray-900">Admin Settings</h2>
                     <p className="text-sm text-gray-500">Global configurations for Mandirlok platform.</p>
                 </div>
             </div>
@@ -232,6 +239,60 @@ export default function AdminSettingsPage() {
                                                 <button onClick={handleAddSlide} className="text-[#ff7f0a] font-bold text-xs hover:underline">Add First Slide</button>
                                             </div>
                                         )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === "page_banners" && (
+                                <div className="space-y-6">
+                                    <h3 className="font-bold text-gray-900">Frontend Page Banners</h3>
+                                    <p className="text-xs text-gray-500">Set the background images for the main banners on high-traffic pages.</p>
+
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <div className="space-y-4 p-5 rounded-2xl border border-gray-100 bg-gray-50/50">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Poojas Page Banner</label>
+                                            <input
+                                                value={pageBanners.poojas}
+                                                onChange={e => setPageBanners({ ...pageBanners, poojas: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white"
+                                                placeholder="https://..."
+                                            />
+                                            {pageBanners.poojas && (
+                                                <div className="rounded-xl overflow-hidden aspect-video border border-gray-100 shadow-sm">
+                                                    <img src={pageBanners.poojas} className="w-full h-full object-cover" alt="Poojas Banner Preview" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-4 p-5 rounded-2xl border border-gray-100 bg-gray-50/50">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Chadhava Page Banner</label>
+                                            <input
+                                                value={pageBanners.chadhava}
+                                                onChange={e => setPageBanners({ ...pageBanners, chadhava: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white"
+                                                placeholder="https://..."
+                                            />
+                                            {pageBanners.chadhava && (
+                                                <div className="rounded-xl overflow-hidden aspect-video border border-gray-100 shadow-sm">
+                                                    <img src={pageBanners.chadhava} className="w-full h-full object-cover" alt="Chadhava Banner Preview" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-4 p-5 rounded-2xl border border-gray-100 bg-gray-50/50">
+                                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Temples Page Banner</label>
+                                            <input
+                                                value={pageBanners.temples}
+                                                onChange={e => setPageBanners({ ...pageBanners, temples: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white"
+                                                placeholder="https://..."
+                                            />
+                                            {pageBanners.temples && (
+                                                <div className="rounded-xl overflow-hidden aspect-video border border-gray-100 shadow-sm">
+                                                    <img src={pageBanners.temples} className="w-full h-full object-cover" alt="Temples Banner Preview" />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}

@@ -39,6 +39,9 @@ export default function ChadhavaDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isDonation, setIsDonation] = useState(false);
+  const [customAmount, setCustomAmount] = useState<string>("");
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (!id) return;
@@ -52,7 +55,7 @@ export default function ChadhavaDetailPage() {
 
         if (data.success) {
           setItem(data.data);
-          
+
           // Fetch favorites status
           const favRes = await getUserFavorites();
           if (favRes.success && favRes.data) {
@@ -242,7 +245,7 @@ export default function ChadhavaDetailPage() {
               <div className="sticky top-24 space-y-6">
                 <div className="bg-white rounded-3xl p-6 shadow-xl border border-amber-100 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -mr-16 -mt-16"></div>
-                  
+
                   <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
                     <CheckCircle2 className="text-amber-500" size={20} />
                     Complete Offering
@@ -258,9 +261,74 @@ export default function ChadhavaDetailPage() {
                       <span className="text-green-600 font-medium">Free</span>
                     </div>
                     <div className="h-px bg-amber-50"></div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-6">
                       <span className="font-bold text-gray-900">Total Payable</span>
-                      <span className="text-2xl font-black text-amber-600">₹{item.price?.toLocaleString()}</span>
+                      <span className="text-2xl font-black text-amber-600">₹{(item.price * quantity).toLocaleString()}</span>
+                    </div>
+
+                    <div className="space-y-4 mb-8">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Quantity</p>
+                      <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                        <button
+                          onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                          className="w-10 h-10 bg-white border border-amber-100 rounded-xl flex items-center justify-center text-amber-600 font-bold hover:bg-amber-50 active:scale-95 transition-all outline-none"
+                        >
+                          −
+                        </button>
+                        <span className="flex-1 text-center font-bold text-gray-900">{quantity}</span>
+                        <button
+                          onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                          className="w-10 h-10 bg-white border border-amber-100 rounded-xl flex items-center justify-center text-amber-600 font-bold hover:bg-amber-50 active:scale-95 transition-all outline-none"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 mb-6">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Choose Offering Type</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setIsDonation(false)}
+                          className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all ${!isDonation ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500' : 'bg-gray-50 border-gray-100'}`}
+                        >
+                          <span className="text-lg">📹</span>
+                          <span className={`text-[10px] font-bold ${!isDonation ? 'text-amber-700' : 'text-gray-500'}`}>Ritual + Video</span>
+                        </button>
+                        <button
+                          onClick={() => setIsDonation(true)}
+                          className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all ${isDonation ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500' : 'bg-gray-50 border-gray-100'}`}
+                        >
+                          <span className="text-lg">📜</span>
+                          <span className={`text-[10px] font-bold ${isDonation ? 'text-amber-700' : 'text-gray-500'}`}>Simple Donation</span>
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-gray-500 leading-tight">
+                        {isDonation
+                          ? "Direct contribution to temple. Immediate digital certificate issued. No video recording."
+                          : "Full Vedic ritual performed in your name. Video proof sent on WhatsApp."}
+                      </p>
+
+                      {isDonation && (
+                        <div className="pt-4 border-t border-amber-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            Additional Donation / Dakshina (Optional)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                            <input
+                              type="number"
+                              placeholder="Enter amount (e.g. 501, 1100)"
+                              value={customAmount}
+                              onChange={(e) => setCustomAmount(e.target.value)}
+                              className="w-full pl-8 pr-4 py-3 bg-white border border-amber-100 rounded-2xl text-xs focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                            />
+                          </div>
+                          <p className="text-[9px] text-amber-600 mt-2 italic flex items-center gap-1">
+                            <Info size={10} /> This amount will be added to your total contribution.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -274,7 +342,7 @@ export default function ChadhavaDetailPage() {
                       const dd = String(targetDate.getDate()).padStart(2, "0");
                       const dateValue = `${yyyy}-${mm}-${dd}`;
 
-                      router.push(`/cart?templeId=${item.templeId?._id}&offerings=${item._id}&qty=1&date=${dateValue}`);
+                      router.push(`/cart?templeId=${item.templeId?._id}&offerings=${item._id}:${quantity}&qty=1&date=${dateValue}&isDonation=${isDonation}&customAmount=${customAmount || 0}`);
                     }}
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold py-4 rounded-2xl shadow-[0_8px_30px_rgb(245,158,11,0.3)] hover:shadow-[0_12px_40px_rgb(245,158,11,0.4)] transition-all active:scale-[0.98] mb-4"
                   >
@@ -288,15 +356,14 @@ export default function ChadhavaDetailPage() {
                       </div>
                       <span className="text-[10px] font-medium text-gray-500">Share</span>
                     </div>
-                    <div 
+                    <div
                       onClick={handleToggleFavorite}
                       className="flex flex-col items-center gap-1 group cursor-pointer"
                     >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                        isFavorite 
-                          ? "bg-rose-100 text-rose-600" 
-                          : "bg-amber-50 text-amber-600 group-hover:bg-amber-100"
-                      }`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isFavorite
+                        ? "bg-rose-100 text-rose-600"
+                        : "bg-amber-50 text-amber-600 group-hover:bg-amber-100"
+                        }`}>
                         <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
                       </div>
                       <span className={`text-[10px] font-medium ${isFavorite ? "text-rose-600" : "text-gray-500"}`}>

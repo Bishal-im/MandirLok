@@ -14,12 +14,12 @@ export async function POST(req: Request) {
     await connectDB();
 
     const body = await req.json();
-    const { poojaId, qty = 1, chadhavaIds = [] } = body;
+    const { poojaId, qty = 1, chadhavaIds = [], extraDonation = 0 } = body;
 
     // 2. Fetch pooja price (if provided)
     let poojaAmount = 0;
     let poojaName = "Sacred Offering";
-    
+
     if (poojaId) {
       const pooja = await Pooja.findById(poojaId);
       if (!pooja) {
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       chadhavaAmount = chadhavaItems.reduce((sum, item) => sum + item.price, 0);
     }
 
-    const totalAmount = poojaAmount + chadhavaAmount;
+    const totalAmount = poojaAmount + chadhavaAmount + (extraDonation || 0);
 
     // Razorpay amount is in paise (multiply by 100)
     const razorpayOrder = await razorpay.orders.create({
@@ -51,6 +51,7 @@ export async function POST(req: Request) {
         poojaName: poojaName,
         qty: qty.toString(),
         chadhavaIds: chadhavaIds.join(","),
+        extraDonation: (extraDonation || 0).toString(),
       },
     });
 
@@ -62,6 +63,7 @@ export async function POST(req: Request) {
         currency: "INR",
         poojaAmount: poojaAmount,
         chadhavaAmount,
+        extraDonation: (extraDonation || 0),
         keyId: process.env.RAZORPAY_KEY_ID,
       },
     });

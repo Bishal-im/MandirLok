@@ -7,6 +7,7 @@ import Footer from "@/components/layout/Footer";
 
 import { Search, MapPin, ChevronRight, Heart, Star } from "lucide-react";
 import { getUserTempleFavorites, toggleTempleFavorite } from "@/lib/actions/user";
+import { getSettings } from "@/lib/actions/admin";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Temple {
@@ -69,11 +70,11 @@ function ImagePlaceholder({ label = "", className = "" }: { label?: string; clas
 }
 
 // ── Temple Card ───────────────────────────────────────────────────────────────
-function TempleCard({ 
-  temple, 
-  isFavorite, 
-  onToggle 
-}: { 
+function TempleCard({
+  temple,
+  isFavorite,
+  onToggle
+}: {
   temple: Temple;
   isFavorite: boolean;
   onToggle: (id: string) => void;
@@ -82,7 +83,7 @@ function TempleCard({
     <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col h-full cursor-pointer">
       {/* Link Overlay */}
       <Link href={`/temples/${temple.slug || temple._id}`} className="absolute inset-0 z-0" />
-      
+
       {/* Image */}
       <div className="relative h-52 overflow-hidden z-10">
         {temple.images?.[0] ? (
@@ -105,11 +106,10 @@ function TempleCard({
             e.stopPropagation();
             onToggle(temple._id);
           }}
-          className={`absolute top-3 right-3 w-9 h-9 backdrop-blur-md rounded-xl flex items-center justify-center transition-all shadow-sm z-20 ${
-            isFavorite 
-              ? "bg-rose-500 text-white" 
+          className={`absolute top-3 right-3 w-9 h-9 backdrop-blur-md rounded-xl flex items-center justify-center transition-all shadow-sm z-20 ${isFavorite
+              ? "bg-rose-500 text-white"
               : "bg-white/80 text-gray-400 hover:text-rose-500 hover:bg-white"
-          }`}
+            }`}
         >
           <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
         </button>
@@ -179,27 +179,30 @@ function SkeletonCard() {
 }
 
 // ── Page Banner ───────────────────────────────────────────────────────────────
-function PageBanner() {
+function PageBanner({ bannerBg }: { bannerBg?: string }) {
   return (
     <section className="relative h-64 md:h-80 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#2d0a00] to-[#1a0500]" />
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(60deg, transparent, transparent 20px, rgba(255,255,255,.1) 20px, rgba(255,255,255,.1) 21px)",
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
+      {bannerBg ? (
+        <img
+          src={bannerBg}
+          alt="Banner"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-[#3d0a00] to-[#1a0500]" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500]/90 via-[#2d0a00]/70 to-transparent" />
       <div className="relative z-10 h-full flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <p className="text-orange-300 text-xs font-semibold tracking-widest uppercase mb-3">
-            Sacred Pilgrimage Sites
+          <p className="text-orange-400 text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2">
+            <span className="w-8 h-[1px] bg-orange-500"></span> Sacred Pilgrimage Sites
           </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">Temples of India</h1>
-          <p className="text-white/80 text-base max-w-xl">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+            Temples of India
+          </h1>
+          <p className="text-white/80 text-base max-w-xl leading-relaxed">
             Explore 500+ sacred temples from Jyotirlingas to Shaktipeeths. Book authentic pujas and
-            receive divine blessings from anywhere.
+            receive divine blessings from India's most powerful spiritual destinations.
           </p>
         </div>
       </div>
@@ -209,17 +212,30 @@ function PageBanner() {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 export default function TemplesPage() {
-  const [temples,          setTemples]          = useState<Temple[]>([]);
-  const [favorites,        setFavorites]        = useState<string[]>([]);
-  const [loading,          setLoading]          = useState(true);
-  const [error,            setError]            = useState("");
-  const [activeCategory,   setActiveCategory]   = useState("All Temples");
-  const [activeState,      setActiveState]      = useState("All States");
-  const [search,           setSearch]           = useState("");
+  const [temples, setTemples] = useState<Temple[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All Temples");
+  const [activeState, setActiveState] = useState("All States");
+  const [search, setSearch] = useState("");
   const [showFeaturedOnly, setShowFeaturedOnly] = useState(false);
+  const [bannerBg, setBannerBg] = useState("");
 
-  // Fetch favorites on mount
+  // Fetch settings on mount
   useEffect(() => {
+    async function fetchBanner() {
+      try {
+        const res = await getSettings("page_banners");
+        if (res && res.value && res.value.temples) {
+          setBannerBg(res.value.temples);
+        }
+      } catch (err) {
+        console.error("Failed to fetch banner settings:", err);
+      }
+    }
+    fetchBanner();
+
     async function fetchFavorites() {
       const res = await getUserTempleFavorites();
       if (res.success && res.data) {
@@ -237,11 +253,11 @@ export default function TemplesPage() {
       try {
         const params = new URLSearchParams();
         if (activeCategory !== "All Temples") params.set("category", activeCategory);
-        if (activeState    !== "All States")  params.set("state",    activeState);
-        if (showFeaturedOnly)                 params.set("featured", "true");
-        if (search)                           params.set("search",   search);
+        if (activeState !== "All States") params.set("state", activeState);
+        if (showFeaturedOnly) params.set("featured", "true");
+        if (search) params.set("search", search);
 
-        const res  = await fetch(`/api/temples?${params.toString()}`);
+        const res = await fetch(`/api/temples?${params.toString()}`);
         const data = await res.json();
 
         if (data.success) {
@@ -263,7 +279,7 @@ export default function TemplesPage() {
   const handleToggleFavorite = async (id: string) => {
     const res = await toggleTempleFavorite(id);
     if (res.success) {
-      setFavorites(prev => 
+      setFavorites(prev =>
         res.isAdded ? [...prev, id] : prev.filter(fid => fid !== id)
       );
     } else {
@@ -284,7 +300,7 @@ export default function TemplesPage() {
     <>
       <Navbar />
       <main className="min-h-screen bg-gray-50 font-sans">
-        <PageBanner />
+        <PageBanner bannerBg={bannerBg} />
 
         {/* Filter Bar */}
         <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
@@ -294,11 +310,10 @@ export default function TemplesPage() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                    activeCategory === cat
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${activeCategory === cat
                       ? "bg-orange-500 text-white shadow-md"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>
@@ -373,9 +388,9 @@ export default function TemplesPage() {
           {!loading && !error && sortedTemples.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {sortedTemples.map((temple) => (
-                <TempleCard 
-                  key={temple._id} 
-                  temple={temple} 
+                <TempleCard
+                  key={temple._id}
+                  temple={temple}
                   isFavorite={favorites.includes(temple._id)}
                   onToggle={handleToggleFavorite}
                 />

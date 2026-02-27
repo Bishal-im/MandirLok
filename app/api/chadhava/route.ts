@@ -34,7 +34,8 @@ export async function GET(req: Request) {
 
     const chadhavaItems = await Chadhava.find(filter)
       .populate("templeId", "name location slug") // attach temple name & location
-      .sort({ isFeatured: -1, createdAt: -1 });
+      .sort({ isFeatured: -1, createdAt: -1 })
+      .lean();
 
     return NextResponse.json({ success: true, data: chadhavaItems });
   } catch (error) {

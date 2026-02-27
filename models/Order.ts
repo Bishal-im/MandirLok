@@ -15,6 +15,7 @@ export interface IOrderChadhava {
   name: string;
   price: number;
   emoji: string;
+  quantity: number;
 }
 
 export interface IOrder extends Document {
@@ -44,6 +45,7 @@ export interface IOrder extends Document {
   // Pricing
   poojaAmount: number;
   chadhavaAmount: number;
+  extraDonation: number;
   totalAmount: number;
 
   // Payment
@@ -54,6 +56,7 @@ export interface IOrder extends Document {
 
   // Order tracking
   orderStatus: OrderStatus;
+  isDonation: boolean;
   videoUrl?: string;         // AWS S3 URL after pandit uploads
   videoSentAt?: Date;
 
@@ -68,6 +71,7 @@ const OrderChadhavaSchema = new Schema(
     name: String,
     price: Number,
     emoji: String,
+    quantity: { type: Number, default: 1 },
   },
   { _id: false }
 );
@@ -95,6 +99,7 @@ const OrderSchema = new Schema<IOrder>(
 
     poojaAmount: { type: Number, required: true },
     chadhavaAmount: { type: Number, default: 0 },
+    extraDonation: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
 
     paymentStatus: {
@@ -111,6 +116,7 @@ const OrderSchema = new Schema<IOrder>(
       enum: ["pending", "assigned", "confirmed", "in-progress", "completed", "cancelled"],
       default: "pending",
     },
+    isDonation: { type: Boolean, default: false },
 
     videoUrl: { type: String, default: "" },
     videoSentAt: { type: Date, default: null },

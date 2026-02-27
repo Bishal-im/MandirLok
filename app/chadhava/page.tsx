@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Search, MapPin, ChevronRight, Filter, Sparkles, Heart } from "lucide-react";
 import { getUserFavorites, toggleChadhavaFavorite } from "@/lib/actions/user";
+import { getSettings } from "@/lib/actions/admin";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Temple {
@@ -39,87 +41,88 @@ const CATEGORIES = [
 ];
 
 // ── Chadhava Card ─────────────────────────────────────────────────────────────
-function ChadhavaCard({ 
-  item, 
-  isFavorite, 
-  onToggle 
-}: { 
-  item: Chadhava; 
+function ChadhavaCard({
+  item,
+  isFavorite,
+  onToggle
+}: {
+  item: Chadhava;
   isFavorite: boolean;
   onToggle: (id: string) => void;
 }) {
   return (
-    <div className="group bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-amber-50 flex flex-col h-full relative cursor-pointer">
-      {/* Link wrapper for most of the card */}
-      <Link href={`/chadhava/${item._id}`} className="absolute inset-0 z-0" />
-      
+    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-100 flex flex-col h-full">
       {/* Image Area */}
-      <div className="relative h-56 overflow-hidden bg-gradient-to-br from-amber-50 to-orange-100 flex items-center justify-center z-10">
+      <div className="relative h-52 overflow-hidden bg-gradient-to-br from-orange-800/60 to-red-900/70 flex items-center justify-center">
         {item.image ? (
           <img
             src={item.image}
             alt={item.name}
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <span className="text-7xl group-hover:scale-110 transition-transform duration-700">
+          <span className="text-5xl group-hover:scale-110 transition-transform duration-500 relative z-10">
             {item.emoji || "🌸"}
           </span>
         )}
-        
-        {/* Floating Badges */}
+
         {item.tag && (
-          <div className={`absolute top-4 left-4 ${item.tagColor || "bg-orange-500"} text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg backdrop-blur-sm`}>
+          <span
+            className={`absolute top-3 left-3 ${item.tagColor || "bg-orange-500"} text-white text-xs font-bold px-3 py-1 rounded-full`}
+          >
             {item.tag}
-          </div>
+          </span>
         )}
-        
-        <button 
+
+        <button
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onToggle(item._id);
           }}
-          className={`absolute top-4 right-4 w-10 h-10 backdrop-blur-md rounded-full flex items-center justify-center transition-all shadow-sm z-20 ${
-            isFavorite 
-              ? "bg-rose-500 text-white" 
-              : "bg-white/80 text-amber-600 hover:text-rose-500 hover:bg-white"
-          }`}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm z-20 ${isFavorite ? "bg-red-500 text-white" : "bg-white/80 text-gray-400 hover:text-red-500 hover:bg-white"
+            }`}
         >
-          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+          <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
         </button>
 
-        <div className="absolute bottom-4 left-4 right-4 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 pointer-events-none">
-          <div className="bg-white/90 backdrop-blur-md text-gray-900 text-[10px] font-bold py-2 px-4 rounded-2xl shadow-xl flex items-center justify-center gap-2">
-            View Details <ChevronRight size={12} />
-          </div>
+        <div className="absolute bottom-3 right-3">
+          <span className="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
+            {item.category}
+          </span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6 flex flex-col flex-1 space-y-3 z-10 pointer-events-none">
-        <div className="flex items-center gap-2 text-[10px] font-bold text-amber-600 uppercase tracking-widest">
-           <span>{item.category || "General"}</span>
-        </div>
-        
-        <h3 className="font-bold text-gray-900 text-lg group-hover:text-amber-600 transition-colors line-clamp-1 leading-tight">
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="font-bold text-gray-900 text-base mb-2 line-clamp-2 leading-snug">
           {item.name}
         </h3>
 
-        <div className="flex items-center gap-1.5 text-gray-400">
-           <MapPin size={12} className="text-amber-400" />
-           <span className="text-[11px] font-medium line-clamp-1">{item.templeId?.name}</span>
+        {/* Temple */}
+        <div className="flex items-start gap-1.5 mb-1.5">
+          <MapPin size={14} className="text-orange-500 shrink-0 mt-0.5" />
+          <span className="text-xs text-gray-500 line-clamp-1">
+            {item.templeId?.name || "Sacred Temple"}
+          </span>
         </div>
 
-        <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed flex-1">
+        <p className="text-xs text-gray-400 line-clamp-2 mb-4">
           {item.description}
         </p>
 
-        <div className="pt-4 flex items-center justify-between border-t border-amber-50 mt-auto">
-
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm">
-            <ChevronRight size={20} />
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-auto">
+          <div>
+            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Contribution</p>
+            <p className="text-lg font-black text-orange-600">₹{item.price}</p>
           </div>
+          <Link
+            href={`/chadhava/${item._id}`}
+            className="inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all duration-200 hover:shadow-lg hover:shadow-orange-200"
+          >
+            Offer Seva
+          </Link>
         </div>
       </div>
     </div>
@@ -129,34 +132,165 @@ function ChadhavaCard({
 // ── Skeleton Card ─────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-[2.5rem] overflow-hidden border border-amber-50 animate-pulse">
-      <div className="h-56 bg-gray-100" />
-      <div className="p-6 space-y-4">
-        <div className="h-4 bg-gray-100 rounded w-1/4" />
-        <div className="h-6 bg-gray-100 rounded w-3/4" />
-        <div className="h-3 bg-gray-100 rounded w-full" />
-        <div className="h-12 bg-gray-100 rounded w-full mt-4" />
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
+      <div className="h-52 bg-gray-200" />
+      <div className="p-5 space-y-3">
+        <div className="h-4 bg-gray-200 rounded w-3/4" />
+        <div className="h-3 bg-gray-200 rounded w-1/2" />
+        <div className="h-3 bg-gray-200 rounded w-full" />
+        <div className="h-8 bg-gray-200 rounded w-full mt-4" />
       </div>
     </div>
   );
 }
 
+// ── Donation Card ─────────────────────────────────────────────────────────────
+function DonationCard({ temples }: { temples: Temple[] }) {
+  const [selectedTemple, setSelectedTemple] = useState("");
+  const [amount, setAmount] = useState("");
+  const router = useRouter();
+
+  const handleDonate = () => {
+    if (!selectedTemple) return alert("Please select a temple");
+    if (!amount || parseInt(amount) < 1) return alert("Please enter a valid amount");
+
+    router.push(`/cart?templeId=${selectedTemple}&isDonation=true&customAmount=${amount}`);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-amber-500 to-orange-700 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl h-full flex flex-col justify-between">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+
+      <div className="relative z-10">
+        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6">
+          <Heart size={24} className="text-white fill-white" />
+        </div>
+        <h3 className="text-2xl font-black mb-2">Direct Temple Donation</h3>
+        <p className="text-white/80 text-[11px] leading-relaxed mb-6">
+          Your contribution goes directly to the temple's maintenance and sacred services. Receive a divine certificate of devotion.
+        </p>
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-white/60">Select Temple</label>
+            <select
+              value={selectedTemple}
+              onChange={(e) => setSelectedTemple(e.target.value)}
+              className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:bg-white/20 transition-all custom-select"
+            >
+              <option value="" className="text-gray-900">Choose a temple...</option>
+              {temples.map(t => (
+                <option key={t._id} value={t._id} className="text-gray-900">{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-white/60">Donation Amount (₹)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60 font-bold text-xs">₹</span>
+              <input
+                type="number"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-xl pl-8 pr-4 py-2.5 text-xs text-white placeholder:text-white/40 focus:outline-none focus:bg-white/20 transition-all"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={handleDonate}
+        className="w-full bg-white text-orange-700 font-bold py-3.5 rounded-2xl shadow-xl hover:bg-amber-50 active:scale-[0.98] transition-all mt-8 text-sm"
+      >
+        Proceed to Donate
+      </button>
+    </div>
+  );
+}
+
+// ── Page Banner ───────────────────────────────────────────────────────────────
+function PageBanner({ bannerBg }: { bannerBg?: string }) {
+  return (
+    <section className="relative h-64 md:h-80 overflow-hidden">
+      {bannerBg ? (
+        <img
+          src={bannerBg}
+          alt="Banner"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-[#3d0a00] to-[#1a0500]" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#1a0500]/90 via-[#2d0a00]/70 to-transparent" />
+      <div className="relative z-10 h-full flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <span className="bg-orange-500/90 text-white text-xs font-bold px-3 py-1.5 rounded-full">
+              Divine Offerings Seva
+            </span>
+            <span className="bg-white/10 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+              Authentic Prasad & Bhog
+            </span>
+            <span className="bg-white/10 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+              Sankalp Video Included
+            </span>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            Sacred Chadhava & Offerings
+          </h1>
+          <p className="text-white/80 text-base max-w-xl leading-relaxed">
+            Express your devotion through traditional offerings at 500+ sacred temples.
+            Receive divine blessings and proof of your seva.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function ChadhavaPage() {
   const [items, setItems] = useState<Chadhava[]>([]);
+  const [temples, setTemples] = useState<Temple[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const [bannerBg, setBannerBg] = useState("");
 
   useEffect(() => {
+    async function fetchBanner() {
+      try {
+        const res = await getSettings("page_banners");
+        if (res && res.value && res.value.chadhava) {
+          setBannerBg(res.value.chadhava);
+        }
+      } catch (err) {
+        console.error("Failed to fetch banner settings:", err);
+      }
+    }
+    fetchBanner();
+
     async function fetchFavorites() {
       const res = await getUserFavorites();
       if (res.success && res.data) {
         setFavorites(res.data);
       }
     }
+    async function fetchTemples() {
+      try {
+        const res = await fetch("/api/temples");
+        const data = await res.json();
+        if (data.success) setTemples(data.data);
+      } catch (e) {
+        console.error("Failed to fetch temples", e);
+      }
+    }
     fetchFavorites();
+    fetchTemples();
   }, []);
 
   useEffect(() => {
@@ -190,7 +324,7 @@ export default function ChadhavaPage() {
   const handleToggleFavorite = async (id: string) => {
     const res = await toggleChadhavaFavorite(id);
     if (res.success) {
-      setFavorites(prev => 
+      setFavorites(prev =>
         res.isAdded ? [...prev, id] : prev.filter(fid => fid !== id)
       );
     } else {
@@ -210,28 +344,8 @@ export default function ChadhavaPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen bg-[#fdfaf5] font-sans pt-20">
-        {/* Modern Header */}
-        <section className="relative py-20 overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-full">
-            <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-amber-200/20 blur-[120px] rounded-full"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-200/20 blur-[120px] rounded-full"></div>
-          </div>
-          
-          <div className="container-app relative z-10 text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-full border border-amber-100 text-amber-700 text-[10px] font-bold tracking-[0.2em] uppercase">
-              <Sparkles size={12} /> Sacred Offerings Seva
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black text-gray-900 leading-tight">
-              Express Your <span className="text-amber-600">Devotion</span><br />
-              Through Chadhava
-            </h1>
-            <p className="max-w-xl mx-auto text-gray-500 text-sm md:text-base leading-relaxed">
-              Make authentic offerings at 500+ sacred temples across India. 
-              Receive personalized sankalp benefits and video proof of your devotion.
-            </p>
-          </div>
-        </section>
+      <main className="min-h-screen bg-gray-50 font-sans">
+        <PageBanner bannerBg={bannerBg} />
 
         {/* Dynamic Filters & Search */}
         <div className="sticky top-20 z-40 bg-[#fdfaf5]/80 backdrop-blur-xl border-y border-amber-50 py-6">
@@ -243,11 +357,10 @@ export default function ChadhavaPage() {
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${
-                      activeCategory === cat.id
-                        ? "bg-amber-500 text-white shadow-lg shadow-amber-200"
-                        : "bg-white text-gray-600 hover:bg-amber-50 border border-amber-100 shadow-sm"
-                    }`}
+                    className={`shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 ${activeCategory === cat.id
+                      ? "bg-amber-500 text-white shadow-lg shadow-amber-200"
+                      : "bg-white text-gray-600 hover:bg-amber-50 border border-amber-100 shadow-sm"
+                      }`}
                   >
                     <span>{cat.icon}</span>
                     <span>{cat.name}</span>
@@ -294,10 +407,15 @@ export default function ChadhavaPage() {
             </div>
           ) : sortedItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {/* Standalone Donation Card - Inserted as the first or specific position */}
+              <div className="sm:col-span-1 lg:col-span-1 xl:col-span-1">
+                <DonationCard temples={temples} />
+              </div>
+
               {sortedItems.map((item) => (
-                <ChadhavaCard 
-                  key={item._id} 
-                  item={item} 
+                <ChadhavaCard
+                  key={item._id}
+                  item={item}
                   isFavorite={favorites.includes(item._id)}
                   onToggle={handleToggleFavorite}
                 />
@@ -314,21 +432,21 @@ export default function ChadhavaPage() {
             </div>
           )}
         </div>
-        
+
         {/* Support Section */}
         <section className="container-app py-12 pb-20">
           <div className="bg-gradient-to-br from-amber-600 to-orange-700 rounded-[3rem] p-10 md:p-16 text-center text-white relative overflow-hidden shadow-2xl">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-             <div className="relative z-10 space-y-6">
-                <h2 className="text-3xl md:text-4xl font-black">Need a Special Seva?</h2>
-                <p className="max-w-lg mx-auto text-white/80 text-sm leading-relaxed">
-                  If you wish to perform a specific ritual or offering not listed here, our team can arrange it personally for you.
-                </p>
-                <div className="flex flex-wrap justify-center gap-4 pt-4">
-                  <a href="https://wa.me/yournumber" className="bg-white text-amber-700 font-bold px-8 py-3 rounded-2xl hover:bg-amber-50 transition-colors shadow-lg">WhatsApp Us</a>
-                  <Link href="/contact" className="bg-white/10 backdrop-blur-md border border-white/30 text-white font-bold px-8 py-3 rounded-2xl hover:bg-white/20 transition-colors">Contact Support</Link>
-                </div>
-             </div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+            <div className="relative z-10 space-y-6">
+              <h2 className="text-3xl md:text-4xl font-black">Need a Special Seva?</h2>
+              <p className="max-w-lg mx-auto text-white/80 text-sm leading-relaxed">
+                If you wish to perform a specific ritual or offering not listed here, our team can arrange it personally for you.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 pt-4">
+                <a href="https://wa.me/yournumber" className="bg-white text-amber-700 font-bold px-8 py-3 rounded-2xl hover:bg-amber-50 transition-colors shadow-lg">WhatsApp Us</a>
+                <Link href="/contact" className="bg-white/10 backdrop-blur-md border border-white/30 text-white font-bold px-8 py-3 rounded-2xl hover:bg-white/20 transition-colors">Contact Support</Link>
+              </div>
+            </div>
           </div>
         </section>
       </main>

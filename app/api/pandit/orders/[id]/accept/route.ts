@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import Order from "@/models/Order";
+import Notification from "@/models/Notification";
 import { getPanditFromRequest } from "@/lib/panditAuth";
 import { sendWhatsApp } from "@/lib/whatsapp";
 
@@ -31,6 +32,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
             );
         } catch (e) {
             console.error("[WhatsApp acceptOrder API notification failed]", e);
+        }
+
+        // Create In-app Notification
+        try {
+            await Notification.create({
+                userId: order.userId,
+                title: "Booking Accepted! 🧘",
+                message: `Your booking for ${(order.poojaId as any)?.name || "Pooja"} has been accepted by the Pandit.`,
+                type: "booking",
+                link: `/bookings/${order._id}`
+            });
+        } catch (notifError) {
+            console.error("Failed to create in-app notification (pandit accept):", notifError);
         }
 
         return NextResponse.json({ success: true, data: order });
